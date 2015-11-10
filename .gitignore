@@ -1,0 +1,9 @@
+*~
+*.o
+**/bin/build
+**/lib/build
+./bin
+**/bin/emATTRACT
+**/bin/mcATTRACT
+**/bin/scATTRACT
+**/lib/libAttractServer.so
