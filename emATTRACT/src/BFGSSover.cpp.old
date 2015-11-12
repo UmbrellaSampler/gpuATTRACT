@@ -1,0 +1,977 @@
+/*
+ * BFGSSover.cpp
+ *
+ *  Created on: Sep 28, 2015
+ *      Author: uwe
+ */
+
+#include <iostream>
+
+#include "BFGSSolver.h"
+#include <Eigen/Dense>
+
+
+using std::cerr;
+using std::endl;
+
+ema::BFGSSolver::Options ema::BFGSSolver::settings;
+
+template <typename T> inline
+int sign(T val) {
+	return (T(0) < val) - (val < T(0));
+}
+
+
+#if 0
+
+void ema::BFGSSolver::run(coro_t::caller_type& ca) {
+
+	Vector x = getState();
+	const unsigned DIM = x.rows();
+	Matrix H = Matrix::Identity(DIM, DIM);
+	Matrix H_neu = Matrix::Identity(DIM, DIM);
+	ObjGrad objGrad;
+
+	Vector x_old = x;
+
+	unsigned iter = 0;
+
+	do {
+//        FunctionGradient(x, grad);
+
+		if (stats) {
+			++statistic.numIter;
+		}
+
+		ObjGrad objGrad0;
+		OBJGRAD(x, objGrad0);
+		assert(std::isnan(objGrad0.obj) == false);
+		const Vector p = -1 * H * objGrad0.grad;
+		if (std::isnan(p(0)) || std::isnan(p(3))) {
+			cerr << "x=" << x.transpose() << endl;
+			cerr << "objGrad0.obj=" << objGrad0.obj << endl;
+			cerr << "objGrad0.grad=" << objGrad0.grad.transpose() << endl;
+
+			cerr << "p=" << p.transpose() << endl;
+			cerr << "H=" << H << endl;
+		}
+
+		 // output from linesearch
+
+		/* inplace output :
+		 * 		x
+		 * 		objGrad(x)
+		 */
+		/* linesearch */
+		switch (search_type) {
+		case WolfeRule: {
+
+			const double phi0_dash = p.dot(objGrad0.grad);
+
+			/* initial value for alpha */
+			double alpha = 1.0;
+
+			bool decrease_direction = true;
+			Vector x_candidate;
+
+			// 200 guesses
+			for (size_t iter = 0; iter < 200; ++iter) {
+
+				if (stats) {
+					++statistic.numLineSearchIter;
+				}
+
+				// new guess for phi(alpha)
+				x_candidate = x + alpha * p;
+				OBJGRAD(x_candidate, objGrad);
+
+				static int count = 0;
+				count++;
+//				if (std::isnan(objGrad.obj)) {
+//					cerr << "count=" << count << endl;
+//					cerr << "x_candidate=" << x_candidate.transpose() << endl;
+//					cerr << "alpha=" << alpha << endl;
+//					cerr << "p=" << p.transpose() << endl;
+//				}
+				assert(std::isnan(objGrad.obj) == false);
+
+				// decrease condition invalid --> shrink interval
+				if (objGrad.obj > objGrad0.obj + 0.0001 * alpha * phi0_dash) {
+					alpha *= 0.5;
+					decrease_direction = false;
+				} else {
+
+					// valid decrease --> test strong wolfe condition
+
+					const double phi_dash = p.dot(objGrad.grad);
+
+					// curvature condition invalid ?
+					if ((phi_dash < 0.9 * phi0_dash) || !decrease_direction) {
+						// increase interval
+						alpha *= 4.0;
+					} else {
+						// both condition are valid --> we are happy
+						cerr << "linesearch " << endl;
+						cerr << "x0=" << x.transpose() << endl;
+						cerr << "alpha_curr=" << alpha << endl;
+						cerr << "p=" << p.transpose() << endl;
+						cerr << "x_cand=" << x_candidate.transpose() << endl;
+						cerr << "obj(alpha_curr)" << objGrad.obj << endl;
+						cerr << "grad(alpha_curr)" << objGrad.grad.transpose() << endl;
+						cerr << "obj(alpha_last)" << objGrad0.obj << endl;
+						cerr << "grad(alpha_last)" << objGrad0.grad.transpose() << endl;
+
+						char dummy; std::cin >> dummy;
+						cerr << endl;
+
+						break; // loop / linesearch
+					}
+				}
+			}
+			x = x_candidate;
+			break; // switch
+
+		} // case
+
+		default:
+			cerr << "Error: linesearch type unspecified" << endl;
+		}
+
+		// x = x + rate * p; // already done in Wolfe line search
+
+//        Vector grad_old = grad;
+//        FunctionGradient(x, grad);
+
+		Vector s = x - x_old;
+		Vector y = objGrad.grad - objGrad0.grad ;
+
+//		const double ydots = y.dot(s);
+//		const double rho = 1.0 / MAX(ydots, 1e-10);
+
+		const double rho = 1.0 / y.dot(s);
+		if (iter == 0) {
+			H = ((y.dot(s)) / (y.dot(y)) * Matrix::Identity(DIM, DIM));
+			H_neu = H;
+		}
+
+		H = H - rho * (s * (y.transpose() * H) + (H * y) * s.transpose())
+				+ rho * rho * (y.dot(H * y) + 1.0 / rho) * (s * s.transpose());
+
+		H_neu = (Matrix::Identity(DIM, DIM) - rho*s*y.transpose()) * H_neu * (Matrix::Identity(DIM, DIM) - rho*y*s.transpose()) + rho*s * s.transpose();
+
+//		static int count = 0;
+//		if (count++ < 10000) {
+			cerr << H << endl;
+			cerr << endl;
+			cerr << H_neu << endl;
+
+			cerr << "s=" << s.transpose() << endl;
+			cerr << "y=" << y.transpose() << endl;
+//
+//		}
+
+		x_old = x;
+		iter++;
+
+	} while ((objGrad.grad.lpNorm<Eigen::Infinity>() > settings.gradTol) && (iter < settings.maxIter));
+
+	if (stats) {
+		statistic.gradNorm = objGrad.grad.lpNorm<Eigen::Infinity>();
+		if (statistic.gradNorm <= settings.gradTol) {
+			statistic.convergence = BFGSStatistic::gradTolerance;
+		} else {
+			statistic.convergence = BFGSStatistic::maxIter;
+		}
+	}
+
+	return;
+}
+
+#else
+
+//#define IO
+
+void ema::BFGSSolver::run(coro_t::caller_type& ca) {
+
+	/* Algorithm 6.1, J. Nocedal, S. J. Wright, Numerical Optimization (2nd Edition), page 140 */
+	Vector x_curr = getState();
+	Vector x_next;
+	const unsigned DIM = x_curr.rows();
+	Matrix H = Matrix::Identity(DIM, DIM);
+	ObjGrad objGrad_curr;
+	ObjGrad objGrad_next;
+
+
+	Vector p;
+	Vector s;
+	Vector y;
+
+	unsigned iter = 0;
+	double dObj = 0.0;
+
+
+	OBJGRAD(x_curr, objGrad_curr);
+	do {
+
+		if (stats) {
+			++statistic.numIter;
+		}
+
+		assert(std::isnan(objGrad_curr.obj) == false);
+		p = -1.0 * H * objGrad_curr.grad;
+//		if (std::isnan(p(0)) || std::isnan(p(3))) {
+//			cerr << "x=" << x.transpose() << endl;
+//			cerr << "objGrad0.obj=" << objGrad0.obj << endl;
+//			cerr << "objGrad0.grad=" << objGrad0.grad.transpose() << endl;
+//
+//			cerr << "p=" << p.transpose() << endl;
+//			cerr << "H=" << H << endl;
+//		}
+
+		 // output from linesearch
+
+		/* inplace output :
+		 * 		x
+		 * 		objGrad(x)
+		 */
+		/* linesearch */
+//		cerr << "dObj=" << dObj << endl;
+#ifdef IO
+		cerr << "#"<< iter <<" Solver" << endl;
+		cerr << "x_curr=" << x_curr.transpose() << endl;
+		cerr << "obj(x_curr)" << objGrad_curr.obj << endl;
+		cerr << "grad(x_curr)" << objGrad_curr.grad.transpose() << endl;
+		cerr << "dObj=" << dObj << endl;
+		cerr << "p=" << p.transpose() << endl;
+		cerr << endl;
+		cerr << H << endl;
+		cerr << endl;
+#endif
+		switch (search_type) {
+		case WolfeRule:
+			linesearch_WolfeRule(ca, x_curr, objGrad_curr, p, dObj, x_next, objGrad_next);
+			break;
+		default:
+			cerr << "Error: linesearch type unspecified" << endl;
+		}
+
+//		x_next = x_curr + alpha * p; // already done in Wolfe line search
+//		OBJGRAD(x_next, objGrad_next);
+
+
+		s = x_next - x_curr;
+		y = objGrad_next.grad - objGrad_curr.grad;
+		dObj = objGrad_next.obj - objGrad_curr.obj;
+
+
+		double ys = y.dot(s);
+
+#if 1
+		if (fabs(dObj) < 0.5e-5 && true) {
+			if (stats) {
+				statistic.convergence = BFGSStatistic::finitePrec;
+			}
+			break;
+		}
+		if (s.norm() < 1e-14 ) {
+			if (stats) {
+				statistic.convergence = BFGSStatistic::finitePrec;
+			}
+			break;
+		}
+
+		if (ys <= 0.0) {
+			/* damped BFGS-update taken from */
+			/* Al-Baali, Mehiddin, Lucio Grandinetti, and Ornella Pisacane.
+			 * "Damped techniques for the limited memory BFGS method for large-scale optimization."
+			 * Journal of Optimization Theory and Applications 161.2 (2014): 688-699. */
+			/* and */
+			/* Procedure 18.2, J. Nocedal, S. J. Wright, Numerical Optimization (2nd Edition), page 537 */
+
+			Matrix B = H.inverse();
+//			cerr << H << endl << endl;
+//			cerr << B << endl;
+//			char dummy; std::cin >> dummy;
+//			cerr << endl;
+#ifdef IO
+			cerr << "damped update" << endl;
+			cerr << "y.dot(s)=" << ys << endl;
+			cerr << endl;
+#endif
+
+			double theta;
+			Vector Bs = B*s;
+			double sBs = s.dot(Bs);
+			if (ys >= 0.2 * sBs) {
+				theta = 1.0; // skip updating
+			} else {
+				theta = 0.8 * sBs / (sBs - ys);
+			}
+			y = theta * y  +  (1.0-theta)*Bs;
+			assert(!isnan(theta) || !isinf(theta));
+			ys = y.dot(s);
+#ifdef IO
+			cerr << "neu y.dot(s)=" << ys << endl;
+			cerr << endl;
+#endif
+		}
+
+		assert(ys > 0.0);
+
+		if (fabs(ys) < 1e-16) {
+#ifdef IO
+			cerr << "s=" << s.transpose() << endl;
+			cerr << "y=" << y.transpose() << endl;
+			cerr << "y.dot(s)=" << ys << endl;
+#endif
+			if (stats) {
+				statistic.convergence = BFGSStatistic::finitePrec;
+			}
+			break;
+		}
+
+
+#else
+		if (s.norm() < 1e-14 || y.norm() < 1e-14) {
+			if (stats) {
+				statistic.convergence = BFGSStatistic::finitePrec;
+			}
+			break;
+		}
+
+		assert(s.norm() > 0.0);
+		assert(y.norm() > 0.0);
+		if (fabs(ys) < 1e-13) {
+#ifdef IO
+			cerr << "s=" << s.transpose() << endl;
+			cerr << "y=" << y.transpose() << endl;
+			cerr << "y.dot(s)=" << ys << endl;
+#endif
+			if (stats) {
+				statistic.convergence = BFGSStatistic::finitePrec;
+			}
+			break;
+		}
+		if (ys <= 0.0) {
+			cerr << "s=" << s.transpose() << endl;
+			cerr << "y=" << y.transpose() << endl;
+			cerr << "y.dot(s)=" << y.dot(s) << endl;
+		}
+		assert(ys > 0.0); // required from the secand equation condition
+#endif
+		const double rho = 1.0 / ys;
+//		if (iter == 0) {
+//			H = ((y.dot(s)) / (y.dot(y)) * Matrix::Identity(DIM, DIM));
+//		}
+
+
+		H = (Matrix::Identity(DIM, DIM) - rho*s*y.transpose()) * H * (Matrix::Identity(DIM, DIM) - rho*y*s.transpose()) + rho*s * s.transpose();
+
+//		static int count = 0;
+//		if (count++ < 10000) {
+//			cerr << H << endl;
+//			cerr << endl;
+//
+//			cerr << "s=" << s.transpose() << endl;
+//			cerr << "y=" << y.transpose() << endl;
+//			cerr << "rho=" << rho << endl;
+//
+//		}
+
+		// ToDo: make a swap operation here and all subroutines!!!
+		x_curr = x_next;
+		objGrad_curr = objGrad_next;
+		iter++;
+#ifdef IO
+		cerr << "Solver" << endl;
+		cerr << "BFGS norm(grad)=" << objGrad_next.grad.lpNorm<Eigen::Infinity>() << endl;
+		cerr << endl;
+#endif
+	} while ((objGrad_next.grad.lpNorm<Eigen::Infinity>() > settings.gradTol) && (iter < settings.maxIter));
+
+	if (stats) {
+		statistic.gradNorm = objGrad_curr.grad.lpNorm<Eigen::Infinity>();
+		if (statistic.gradNorm <= settings.gradTol) {
+			statistic.convergence = BFGSStatistic::gradTolerance;
+		} else if (iter >= settings.maxIter) {
+			statistic.convergence = BFGSStatistic::maxIter;
+		}
+	}
+
+	return;
+}
+
+#endif
+
+namespace ema {
+
+inline double cubic_interpolate(const double& alpha_curr, const double& alpha_last,
+		const ObjGrad& objGrad_curr, const ObjGrad& objGrad_last,
+		const double& phi_dash_curr, const double& phi_dash_last )
+{
+	/* eq. 3.59 J. Nocedal, S. J. Wright, Numerical Optimization (2nd Edition), page 59 */
+
+	double d1 = phi_dash_last + phi_dash_curr - 3.0 * (objGrad_last.obj - objGrad_curr.obj) / (alpha_last - alpha_curr);
+	double d2 = sign(alpha_curr - alpha_last) * sqrt(d1*d1 - phi_dash_last*phi_dash_curr);
+	double alpha_next = alpha_curr - (alpha_curr - alpha_last)*( (phi_dash_curr + d2 - d1)/(phi_dash_curr - phi_dash_last + 2*d2) );
+#ifdef IO
+	cerr << "\t\t\t" << "alpha_curr=" << alpha_curr << " alpha_last=" << alpha_last << endl;
+	cerr << "\t\t\t" << "objGrad_curr.obj=" << objGrad_curr.obj << " objGrad_last.obj=" << objGrad_last.obj << endl;
+	cerr << "\t\t\t" << "phi_dash_curr=" << phi_dash_curr << " phi_dash_last=" << phi_dash_last << endl;
+	cerr << "\t\t\t" << "d1=" << d1 << " d2=" << d2 << endl;
+	cerr << "\t\t\t" << "sqrt(d1*d1 - phi_dash_last*phi_dash_curr)=" << sqrt(d1*d1 - phi_dash_last*phi_dash_curr)
+		<< " d1*d1=" << d1*d1 << " phi_dash_last*phi_dash_curr="<< phi_dash_last*phi_dash_curr <<  endl;
+#endif
+//	assert(!std::isnan(alpha_next));
+	return alpha_next;
+}
+
+
+inline double ema::BFGSSolver::zoom(coro_t::caller_type& ca, const Vector& x0, const Vector& p,
+		const ObjGrad& objGrad0, const double& phi0_dash, const double& min_alpha,
+		double& alpha_lo, double& alpha_hi,
+		ObjGrad& objGrad_lo, ObjGrad& objGrad_hi,
+		double& phi_dash_lo, double& phi_dash_hi,
+		/*OUT:*/ Vector& x_next, ObjGrad& objGrad_next)
+{
+	/* Algorithm 3.6, J. Nocedal, S. J. Wright, Numerical Optimization (2nd Edition), page 61 */
+
+	ObjGrad objGrad;
+	Vector x_candidate;
+	double alpha;
+
+	unsigned count_equal_obj = 0;
+	unsigned i;
+	for (i = 0; i < settings.maxZoomIter; ++i) {
+
+		alpha = cubic_interpolate(alpha_lo, alpha_hi, objGrad_lo, objGrad_hi, phi_dash_lo, phi_dash_hi);
+
+
+		double alpha_min = std::min(alpha_lo, alpha_hi);
+		double alpha_max = std::max(alpha_lo, alpha_hi);
+		assert(alpha <= alpha_max);
+		assert(alpha >= alpha_min);
+
+		double tol = (alpha_max - alpha_min)*settings.bndTol;
+		if (alpha < alpha_min + tol) {
+			alpha = alpha_min + tol;
+		} else if (alpha > alpha_max - tol) {
+			alpha = alpha_max - tol;
+		}
+
+		x_candidate = x0 + alpha*p;
+
+		OBJGRAD(x_candidate, objGrad);
+
+		double phi_dash = p.dot(objGrad.grad);
+#ifdef IO
+		cerr << "\t\t" << "zoom " << endl;
+		cerr << "\t\t" << "new alpha= "  << alpha << " alpha_lo=" << alpha_lo << " alpha_hi=" << alpha_hi << endl;
+		cerr << "\t\t" << "min_alpha=" << min_alpha << endl;
+		cerr << "\t\t" << "x0=" << x0.transpose() << endl;
+		cerr << "\t\t" << "p=" << p.transpose() << endl;
+		cerr << "\t\t" << "x_cand=" << x_candidate.transpose() << endl;
+		cerr << "\t\t" << "obj(alpha)" << objGrad.obj << endl;
+		cerr << "\t\t" << "grad(alpha)" << objGrad.grad.transpose() << endl;
+		cerr << "\t\t" << "obj(alpha_lo)" << objGrad_lo.obj << endl;
+		cerr << "\t\t" << "grad(alpha_lo)" << objGrad_lo.grad.transpose() << endl;
+		cerr << "\t\t" << "obj(alpha_hi)" << objGrad_hi.obj << endl;
+		cerr << "\t\t" << "grad(alpha_hi)" << objGrad_hi.grad.transpose() << endl;
+
+		char dummy; std::cin >> dummy;
+		cerr << endl;
+#endif
+		assert(alpha <= MAX(alpha_hi,alpha_lo));
+		assert(alpha > MIN(alpha_hi,alpha_lo));
+
+		if ((objGrad.obj > objGrad0.obj + settings.c1*alpha*phi0_dash) || (objGrad.obj >= objGrad_lo.obj)) {
+#ifdef IO
+			cerr << "\t\t" << "taking 1. branch" << endl;
+#endif
+			if (fabs(objGrad.obj - objGrad_lo.obj) < 1.0e-9) {
+				if ((objGrad.grad-objGrad_lo.grad).lpNorm<Eigen::Infinity>() < 1.0e-5) {
+#ifdef IO
+					cerr << "\t\t" << "equal objective, and equal grad" << endl;
+#endif
+					break;
+				}
+				++count_equal_obj;
+#ifdef IO
+				cerr << "\t\t" << "equal objective, count=" << count_equal_obj << endl;
+#endif
+				if (count_equal_obj >= settings.maxEqualObj) {
+					break;
+				}
+			} else if (alpha < min_alpha) {
+				break;
+			}
+			alpha_hi = alpha;
+			objGrad_hi = objGrad;
+			phi_dash_hi = phi_dash;
+		} else {
+			if (fabs(phi_dash) <= -settings.c2*phi0_dash) {
+#ifdef IO
+				cerr << "\t\t" << "taking 2.1 branch" << endl;
+#endif
+				assert(fabs(phi_dash) <= fabs(settings.c2*phi0_dash));
+				x_next = x_candidate;
+				objGrad_next = objGrad;
+				return alpha;
+			}
+			if (phi_dash*(alpha_hi - alpha_lo) >= 0.0) {
+
+#ifdef IO
+				cerr << "\t\t" << "taking 2.2 branch" << endl;
+#endif
+				alpha_hi = alpha_lo;
+				objGrad_hi = objGrad_lo;
+				phi_dash_hi = phi_dash_lo;
+			}
+#ifdef IO
+			cerr << "\t\t" << "taking 2.3 branch" << endl;
+#endif
+			alpha_lo = alpha;
+			objGrad_lo = objGrad;
+			phi_dash_lo = phi_dash;
+		}
+
+	}
+
+	/* return current alpha in case we found no better one */
+	x_next = x_candidate;
+	objGrad_next = objGrad;
+	return alpha;
+}
+
+} // namespace
+
+double ema::BFGSSolver::linesearch_WolfeRule(coro_t::caller_type& ca, const Vector& x0, const ObjGrad& objGrad0, const Vector& p,
+		const double& dObj,
+		/*OUT:*/ Vector& x_next, ObjGrad& objGrad_next)
+{
+	/* Algorithm 3.5, J. Nocedal, S. J. Wright, Numerical Optimization (2nd Edition), page 60 */
+
+	Vector x_candidate;
+
+	ObjGrad objGrad_last = objGrad0;
+	ObjGrad objGrad_curr;
+
+	const double phi0_dash = p.dot(objGrad0.grad);
+//#ifdef IO
+	if(phi0_dash >= 0.0) {
+		cerr << "\t" << "phi0_dash >= 0.0 " << phi0_dash <<  endl;
+		cerr << "\t" << "p=" << p.transpose() << endl;
+		cerr << "\t" << "objGrad0.grad=" << objGrad0.grad.transpose() << endl;
+	}
+//#endif
+	assert(phi0_dash < 0.0);
+	double phi_dash_curr;
+	double phi_dash_last = phi0_dash;
+
+
+
+//	bool max_reached = false;
+//	bool decreased_alpha = false;
+//	bool decreased_set = false;
+
+	/* set the initial step-length of the line search */
+	double alpha_curr = 1.0;
+	double alpha_last = 0.0;
+
+	const double p_norm = p.norm();
+	const double p_max = p.lpNorm<Eigen::Infinity>();
+
+	if (dObj <= 0.0) {
+		alpha_curr =  std::min(alpha_curr, 1.0/p_max);
+	} else {
+		alpha_curr = std::min(alpha_curr, (dObj+dObj)/ (-phi0_dash));
+	}
+
+	double min_alpha = 1e-5/p_max;
+
+
+
+	for (unsigned i = 0; i < settings.maxLineSearchIter; ++i) {
+		if (stats) {
+			++statistic.numLineSearchIter;
+		}
+
+		x_candidate = x0 + alpha_curr*p;
+		OBJGRAD(x_candidate, objGrad_curr);
+#ifdef IO
+		cerr << "\t" << "linesearch " << endl;
+		cerr << "\t" << "x0=" << x0.transpose() << endl;
+		cerr << "\t" << "alpha_curr=" << alpha_curr << endl;
+		cerr << "\t" << "min_alpha=" << min_alpha << endl;
+		cerr << "\t" << "p=" << p.transpose() << endl;
+		cerr << "\t" << "x_cand=" << x_candidate.transpose() << endl;
+		cerr << "\t" << "obj(alpha_curr)" << objGrad_curr.obj << endl;
+		cerr << "\t" << "grad(alpha_curr)" << objGrad_curr.grad.transpose() << endl;
+		cerr << "\t" << "obj(alpha_last)" << objGrad_last.obj << endl;
+		cerr << "\t" << "grad(alpha_last)" << objGrad_last.grad.transpose() << endl;
+
+		char dummy; std::cin >> dummy;
+		cerr << endl;
+#endif
+
+		phi_dash_curr = p.dot(objGrad_curr.grad);
+
+		if ((objGrad_curr.obj > objGrad0.obj + settings.c1*alpha_curr*phi0_dash) || (objGrad_curr.obj >= objGrad_last.obj && i > 0)) {
+#ifdef IO
+			cerr << "\t" << "taking 1. branch" << endl;
+#endif
+			return zoom(ca, x0, p, objGrad0, phi0_dash, min_alpha,
+					alpha_last		, 	alpha_curr		,
+					objGrad_last	, 	objGrad_curr	,
+					phi_dash_last	, 	phi_dash_curr	,
+					/*OUT:*/ x_next , 	objGrad_next	);
+		}
+#ifdef IO
+		cerr << "\t" << "fabs(phi_dash_curr)=" << fabs(phi_dash_curr) << " -settings.c2*phi0_dash)=" << -settings.c2*phi0_dash << endl;
+#endif
+		if (fabs(phi_dash_curr) <= -settings.c2*phi0_dash) {
+			assert(fabs(phi_dash_curr) <= fabs(settings.c2*phi0_dash));
+#ifdef IO
+			cerr << "\t" << "taking 2. branch" << endl;
+#endif
+			x_next = x_candidate;
+			objGrad_next = objGrad_curr;
+			return alpha_curr;
+		}
+
+#ifdef IO
+		cerr << "\t" << "phi_dash_curr=" << phi_dash_curr << endl;
+#endif
+		if (phi_dash_curr >= 0.0) {
+#ifdef IO
+			cerr << "\t" << "taking 3. branch" << endl;
+#endif
+			return zoom(ca, x0, p, objGrad0, phi0_dash, min_alpha,
+					alpha_curr			, 	alpha_last		,
+					objGrad_curr		, 	objGrad_last	,
+					phi_dash_curr		, 	phi_dash_last	,
+					/*OUT:*/ x_next 	, 	objGrad_next	);
+		}
+
+		double tmp;
+		double cubic_interp = cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last);
+
+		if (cubic_interp <= settings.alpha_max/p_norm && cubic_interp > alpha_curr ) { //&& !std::isnan(cubic_interp)
+			tmp = cubic_interp;
+		} else {
+			tmp = 1.5*alpha_curr;
+		}
+
+
+//		if (cubic_interp <= settings.alpha_max/p_norm && cubic_interp > alpha_curr ) { //&& !std::isnan(cubic_interp)
+//			tmp = cubic_interp;
+//		} else if(1.5*alpha_curr < settings.alpha_max/p_norm) {
+//			tmp = 1.5*alpha_curr;
+//		} else if (!max_reached && settings.alpha_max/p_norm > 1.0){
+//			tmp = settings.alpha_max/p_norm;
+//			max_reached = true;
+//		} else {
+//			tmp = 1.5*alpha_curr;
+//		}
+//
+//		if (tmp > settings.alpha_max/p_norm && !decreased_alpha) {
+//			decreased_alpha = true;
+//			if (cubic_interp > 0.0 && cubic_interp <= std::min(settings.alpha_max/p_norm*0.5, 0.5)) {
+//				tmp = cubic_interp;
+//			} else {
+//				tmp = std::min(settings.alpha_max/p_norm * 0.1, 0.1); // settings.alpha_max/p_norm may be < 1.0
+//			}
+//		}
+
+//		if (i == 0) {
+//			if (cubic_interp < 1.0) {
+//				tmp = 0.5;
+//			} else {
+//				tmp = alpha_curr + 0.2/p_norm;
+//			}
+//		} else {
+//			tmp = MIN(cubic_interp, settings.alpha_max/p_norm);
+//			tmp = MAX (alpha_curr + 0.2/p_norm, tmp);
+//		}
+//		if (i == 0) {
+//		} else {
+//			tmp = MIN(cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last), settings.alpha_max/p_norm);
+//		}
+//		double tmp = MIN(cubic_interpolate(alpha_curr, 0.0, objGrad_curr, objGrad0, phi_dash_curr, phi0_dash), settings.alpha_max + i*1.0);
+//		tmp = MAX (alpha_curr + 0.2/p_norm, tmp);
+//		double tmp = cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last);
+//		cerr << "new interpolant alpha=" << tmp << " cubic_interpolate="
+//				<< cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last) << endl;
+//		if (cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last) >= settings.alpha_max) {
+//			cerr << "linesearch " << endl;
+//			cerr << "alpha_max too low: interpolant="
+//					<< cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last)
+//					<< " alpha_max=" << settings.alpha_max << endl;
+//			assert(false);
+//		}
+#ifdef IO
+		cerr << "\t" << "taking path to interpolate new alpha" << endl;
+		cerr << "\t" << "alpha_curr="<< alpha_curr << endl;
+//		if (decreased_alpha) {
+//			cerr << "alpha decreased" << endl;
+//		}
+		cerr << "\t" << "tmp=" << tmp << endl;
+//		cerr << "\t" << "cubic_interpolate(curr, 0)="
+//				<< cubic_interpolate(alpha_curr, 0.0, objGrad_curr, objGrad0, phi_dash_curr, phi0_dash) << endl;
+		cerr << "\t" << "cubic_interpolate(curr, last)="
+				<< cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last) << endl;
+		cerr << "\t" << "p_norm=" << p_norm << endl;
+		cerr << "\t" << "settings.alpha_max/p_norm=" << settings.alpha_max/p_norm << endl;
+		cerr << "\t" << "0.2/p_norm=" << 0.2/p_norm << endl;
+
+
+#endif
+
+//		if (!decreased_set && decreased_alpha) {
+//			decreased_set = true;
+//			alpha_last = 0.0;
+//			objGrad_last = objGrad0;
+//			phi_dash_last = phi0_dash;
+//		} else {
+//			alpha_last = alpha_curr;
+//			objGrad_last = objGrad_curr;
+//			phi_dash_last = phi_dash_curr;
+//		}
+
+
+//		if (tmp > settings.alpha_max/p_norm) {
+//			cerr << "\t" << "alpha_curr="<< alpha_curr << endl;
+//
+//			cerr << "\t" << "tmp=" << tmp << endl;
+//			cerr << "\t" << "cubic_interpolate(curr, last)="
+//					<< cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last) << endl;
+//			cerr << "\t" << "p_norm=" << p_norm << endl;
+//			cerr << "\t" << "settings.alpha_max/p_norm=" << settings.alpha_max/p_norm << endl;
+//			cerr << "\t" << "!!!" << "tmp("<< tmp << ")> settings.alpha_max/p_norm( " << settings.alpha_max/p_norm << ")"<< endl;
+//			assert(tmp <= settings.alpha_max/p_norm);
+//		}
+
+//		if (i > 0) {
+//			assert(tmp > alpha_curr);
+//		}
+//
+//
+//		if (cubic_interp < 1.0 && i == 0) {
+//			alpha_last = 0.0;
+//			objGrad_last = objGrad0;
+//			phi_dash_last = phi0_dash;
+//		} else {
+//			alpha_last = alpha_curr;
+//			objGrad_last = objGrad_curr;
+//			phi_dash_last = phi_dash_curr;
+//		}
+
+		alpha_last = alpha_curr;
+		objGrad_last = objGrad_curr;
+		phi_dash_last = phi_dash_curr;
+
+		alpha_curr = tmp;
+	}
+
+	x_next = x_candidate;
+	objGrad_next = objGrad_curr;
+	return alpha_curr;
+}
+
+//double ema::BFGSSolver::linesearch_WolfeRule(coro_t::caller_type& ca, const Vector& x0, const ObjGrad& objGrad0, const Vector& p,
+//		/*OUT:*/ Vector& x_next, ObjGrad& objGrad_next)
+//{
+//	/* Algorithm 3.5, J. Nocedal, S. J. Wright, Numerical Optimization (2nd Edition), page 60 */
+//
+//	// TODO: return also object_grad accoring to returned alpha to save a fuction eval.
+//	// also from zoom
+//	// and maybe also the new x_candidate !!!
+//
+//	double alpha_curr = 1.0;
+//	double alpha_last = 0.0;
+//
+//	Vector x_candidate;
+//
+//	ObjGrad objGrad_last = objGrad0;
+//	ObjGrad objGrad_curr;
+//
+//	const double phi0_dash = p.dot(objGrad0.grad);
+//	assert(phi0_dash < 0.0);
+//	double phi_dash_curr;
+//	double phi_dash_last = phi0_dash;
+//
+//	const double p_norm = p.norm();
+//
+//	bool max_reached = false;
+//	bool decreased_alpha = false;
+//	bool decreased_set = false;
+//
+//	for (unsigned i = 0; i < settings.maxLineSearchIter; ++i) {
+//		if (stats) {
+//			++statistic.numLineSearchIter;
+//		}
+//
+//		x_candidate = x0 + alpha_curr*p;
+//		OBJGRAD(x_candidate, objGrad_curr);
+//#ifdef IO
+//		cerr << "\t" << "linesearch " << endl;
+//		cerr << "\t" << "x0=" << x0.transpose() << endl;
+//		cerr << "\t" << "alpha_curr=" << alpha_curr << endl;
+//		cerr << "\t" << "p=" << p.transpose() << endl;
+//		cerr << "\t" << "x_cand=" << x_candidate.transpose() << endl;
+//		cerr << "\t" << "obj(alpha_curr)" << objGrad_curr.obj << endl;
+//		cerr << "\t" << "grad(alpha_curr)" << objGrad_curr.grad.transpose() << endl;
+//		cerr << "\t" << "obj(alpha_last)" << objGrad_last.obj << endl;
+//		cerr << "\t" << "grad(alpha_last)" << objGrad_last.grad.transpose() << endl;
+//
+//		char dummy; std::cin >> dummy;
+//		cerr << endl;
+//#endif
+//
+//		phi_dash_curr = p.dot(objGrad_curr.grad);
+//
+//		if ((objGrad_curr.obj > objGrad0.obj + settings.c1*alpha_curr*phi0_dash) || (objGrad_curr.obj >= objGrad_last.obj && i > 0)) {
+//#ifdef IO
+//			cerr << "\t" << "taking 1. branch" << endl;
+//#endif
+//			return zoom(ca, x0, p, objGrad0, phi0_dash,
+//					alpha_last		, 	alpha_curr		,
+//					objGrad_last	, 	objGrad_curr	,
+//					phi_dash_last	, 	phi_dash_curr	,
+//					/*OUT:*/ x_next , 	objGrad_next	);
+//		}
+//#ifdef IO
+//		cerr << "\t" << "fabs(phi_dash_curr)=" << fabs(phi_dash_curr) << " -settings.c2*phi0_dash)=" << -settings.c2*phi0_dash << endl;
+//#endif
+//		if (fabs(phi_dash_curr) <= -settings.c2*phi0_dash) {
+//			assert(fabs(phi_dash_curr) <= fabs(settings.c2*phi0_dash));
+//#ifdef IO
+//			cerr << "\t" << "taking 2. branch" << endl;
+//#endif
+//			x_next = x_candidate;
+//			objGrad_next = objGrad_curr;
+//			return alpha_curr;
+//		}
+//
+//#ifdef IO
+//		cerr << "\t" << "phi_dash_curr=" << phi_dash_curr << endl;
+//#endif
+//		if (phi_dash_curr >= 0.0) {
+//#ifdef IO
+//			cerr << "\t" << "taking 3. branch" << endl;
+//#endif
+//			return zoom(ca, x0, p, objGrad0, phi0_dash,
+//					alpha_curr			, 	alpha_last		,
+//					objGrad_curr		, 	objGrad_last	,
+//					phi_dash_curr		, 	phi_dash_last	,
+//					/*OUT:*/ x_next 	, 	objGrad_next	);
+//		}
+//
+//		double tmp;
+//		double cubic_interp = cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last);
+//
+//		if (cubic_interp <= settings.alpha_max/p_norm && cubic_interp > alpha_curr ) { //&& !std::isnan(cubic_interp)
+//			tmp = cubic_interp;
+//		} else if(1.5*alpha_curr < settings.alpha_max/p_norm) {
+//			tmp = 1.5*alpha_curr;
+//		} else if (!max_reached && settings.alpha_max/p_norm > 1.0){
+//			tmp = settings.alpha_max/p_norm;
+//			max_reached = true;
+//		} else {
+//			tmp = 1.5*alpha_curr;
+//		}
+//
+//		if (tmp > settings.alpha_max/p_norm && !decreased_alpha) {
+//			decreased_alpha = true;
+//			if (cubic_interp > 0.0 && cubic_interp <= std::min(settings.alpha_max/p_norm*0.5, 0.5)) {
+//				tmp = cubic_interp;
+//			} else {
+//				tmp = std::min(settings.alpha_max/p_norm * 0.1, 0.1); // settings.alpha_max/p_norm may be < 1.0
+//			}
+//		}
+//
+////		if (i == 0) {
+////			if (cubic_interp < 1.0) {
+////				tmp = 0.5;
+////			} else {
+////				tmp = alpha_curr + 0.2/p_norm;
+////			}
+////		} else {
+////			tmp = MIN(cubic_interp, settings.alpha_max/p_norm);
+////			tmp = MAX (alpha_curr + 0.2/p_norm, tmp);
+////		}
+////		if (i == 0) {
+////		} else {
+////			tmp = MIN(cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last), settings.alpha_max/p_norm);
+////		}
+////		double tmp = MIN(cubic_interpolate(alpha_curr, 0.0, objGrad_curr, objGrad0, phi_dash_curr, phi0_dash), settings.alpha_max + i*1.0);
+////		tmp = MAX (alpha_curr + 0.2/p_norm, tmp);
+////		double tmp = cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last);
+////		cerr << "new interpolant alpha=" << tmp << " cubic_interpolate="
+////				<< cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last) << endl;
+////		if (cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last) >= settings.alpha_max) {
+////			cerr << "linesearch " << endl;
+////			cerr << "alpha_max too low: interpolant="
+////					<< cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last)
+////					<< " alpha_max=" << settings.alpha_max << endl;
+////			assert(false);
+////		}
+//#ifdef IO
+//		cerr << "\t" << "taking path to interpolate new alpha" << endl;
+//		cerr << "\t" << "alpha_curr="<< alpha_curr << endl;
+//		if (decreased_alpha) {
+//			cerr << "alpha decreased" << endl;
+//		}
+//		cerr << "\t" << "tmp=" << tmp << endl;
+//		cerr << "\t" << "cubic_interpolate(curr, 0)="
+//				<< cubic_interpolate(alpha_curr, 0.0, objGrad_curr, objGrad0, phi_dash_curr, phi0_dash) << endl;
+//		cerr << "\t" << "cubic_interpolate(curr, last)="
+//				<< cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last) << endl;
+//		cerr << "\t" << "p_norm=" << p_norm << endl;
+//		cerr << "\t" << "settings.alpha_max/p_norm=" << settings.alpha_max/p_norm << endl;
+//		cerr << "\t" << "0.2/p_norm=" << 0.2/p_norm << endl;
+//
+//
+//#endif
+//
+//		if (!decreased_set && decreased_alpha) {
+//			decreased_set = true;
+//			alpha_last = 0.0;
+//			objGrad_last = objGrad0;
+//			phi_dash_last = phi0_dash;
+//		} else {
+//			alpha_last = alpha_curr;
+//			objGrad_last = objGrad_curr;
+//			phi_dash_last = phi_dash_curr;
+//		}
+////		alpha_last = alpha_curr;
+////		objGrad_last = objGrad_curr;
+////		phi_dash_last = phi_dash_curr;
+//
+//
+//
+//		assert(tmp <= settings.alpha_max/p_norm);
+//
+////		if (i > 0) {
+////			assert(tmp > alpha_curr);
+////		}
+////
+////
+////		if (cubic_interp < 1.0 && i == 0) {
+////			alpha_last = 0.0;
+////			objGrad_last = objGrad0;
+////			phi_dash_last = phi0_dash;
+////		} else {
+////			alpha_last = alpha_curr;
+////			objGrad_last = objGrad_curr;
+////			phi_dash_last = phi_dash_curr;
+////		}
+//
+//		alpha_curr = tmp;
+//	}
+//
+//	x_next = x_candidate;
+//	objGrad_next = objGrad_curr;
+//	return alpha_curr;
+//}
+

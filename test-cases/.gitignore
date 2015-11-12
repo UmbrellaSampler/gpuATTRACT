@@ -1,0 +1,17 @@
+# Ignore everything
+*
+
+# But not these files
+!.gitignore
+!ligand.pdb
+!ligand-rmsd.pdb
+!receptor.pdb
+!receptor-rmsd.pdb
+!*base_files.tar.gz
+!*.sh
+
+# But exclude
+clean.sh
+
+# ... even if they are in subdirectories
+!*/

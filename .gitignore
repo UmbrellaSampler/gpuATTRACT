@@ -1,9 +1,14 @@
 *~
 *.o
+*.d
 **/bin/build
 **/lib/build
 ./bin
 **/bin/emATTRACT
 **/bin/mcATTRACT
 **/bin/scATTRACT
-**/lib/libAttractServer.so
+**/libAttractServer.so
+*/.cproject
+*/.project
+**/.settings/
+*.bak
