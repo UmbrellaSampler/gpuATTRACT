@@ -22,7 +22,7 @@ mc: as
 	
 sc: as
 	cd scATTRACT/bin && $(MAKE) TARGET=$(TARGET)
-	cd $(BINDIR) && ln -sf ../ScoringClient/bin/scATTRACT
+	cd $(BINDIR) && ln -sf ../scATTRACT/bin/scATTRACT
 
 as: 
 	cd AttractServer/lib && $(MAKE) TARGET=$(TARGET)
@@ -46,7 +46,7 @@ clean_mc:
 	cd mcATTRACT/bin && $(MAKE) clean
 	
 clean_sc:
-	cd ScoringClient/bin && $(MAKE) clean
+	cd scATTRACT/bin && $(MAKE) clean
 
 
 cleanall: cleanall_as cleanall_em cleanall_mc cleanall_sc
@@ -62,7 +62,7 @@ cleanall_mc:
 	cd mcATTRACT/bin && make cleanall
 	
 cleanall_sc:
-	cd ScoringClient/bin && make cleanall
+	cd scATTRACT/bin && make cleanall
 
 help:	
 	@echo "Options:"
