@@ -78,7 +78,6 @@ clean:
 	rm -r $(OBJDIR)
 	
 cleanall: clean
-	#rm $(BINARY)
 	find . -type f -name "$(BINARY)" -delete
 
 clean_deps:

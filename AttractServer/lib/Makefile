@@ -94,8 +94,11 @@ $(OBJECTS_CU:.o=.d): $(OBJDIR)/%.d: %.cu
 	@echo 'Finished building: $<"'
 	@echo ' '	
 
+# do not include if we execute for cleanall or clean
+ifneq (,$(filter cleanall clean,$(MAKECMDGOAL)))
+	-include $(OBJECTS:.o=.d)
+endif
 
--include $(OBJECTS:.o=.d)
 	
 .PHONY: all clean cleanall clean_deps
 
@@ -105,12 +108,8 @@ clean:
 	rm -r $(OBJDIR)
 	
 cleanall: clean
-	rm $(BINARY)
+	find . -type f -name "$(BINARY)" -delete
 
 clean_deps:
 	find $(OBJDIR) -type f -name "*.d" -delete
 
-
-
-#EM_LDFLAGS = -L"." -L"${CUDADIR}/lib64"
-#MC_LDFLAGS = -L"." -L"${CUDADIR}/lib64"
