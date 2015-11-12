@@ -21,7 +21,7 @@ mc: as
 	cd $(BINDIR) && ln -sf ../mcATTRACT/bin/mcATTRACT
 	
 sc: as
-	cd ScoringClient/bin && $(MAKE) TARGET=$(TARGET)
+	cd scATTRACT/bin && $(MAKE) TARGET=$(TARGET)
 	cd $(BINDIR) && ln -sf ../ScoringClient/bin/scATTRACT
 
 as: 
