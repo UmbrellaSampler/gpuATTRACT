@@ -16,11 +16,6 @@
 
 namespace ema {
 
-enum SolverType {
-	BFGS,
-	unspecified
-};
-
 using coro_t = boost::coroutines::coroutine<void(void)>;
 
 struct Statistic {
@@ -30,8 +25,10 @@ struct Statistic {
     }
 	virtual ~Statistic() {};
 
+	unsigned numRequests = 0;
 private:
 	virtual std::ostream& print(std::ostream&) const = 0;
+
 };
 
 
@@ -40,7 +37,7 @@ private:
 class SolverBase {
 public:
 	SolverBase() : coro(nullptr){}
-	virtual ~SolverBase() { if (coro) delete coro;}
+	virtual ~SolverBase() { delete coro;}
 
 	/* make object not copyable, but movealble only */
 	SolverBase(const SolverBase& ) = delete;

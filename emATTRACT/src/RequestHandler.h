@@ -29,7 +29,7 @@ constexpr unsigned minChunkSize = 10; // minimum chunksize that is worth to work
 class RequestHandler {
 public:
 
-	RequestHandler() : _server(nullptr), _solverType(SolverType::unspecified),
+	RequestHandler() : _server(nullptr),
 		_numObjects(0), _numConcurrentObjects(maxConcurrentObjects), _numChunks(numChunks),
 		_minChunkSize(minChunkSize){};
 
@@ -40,7 +40,7 @@ public:
 	/*
 	 ** @brief: Initializes the RequestHandler. Member run() may now be called.
 	 */
-	void init(extServer& server, SolverType solverType, std::vector<extDOF>& dofs);
+	void init(extServer& server, std::string const& solverName, std::vector<extDOF>& dofs);
 
 	void run();
 
@@ -64,7 +64,6 @@ private:
 	std::vector<extDOF> _collectedRequests;
 	std::vector<extEnGrad> _collectedResults;
 
-	SolverType _solverType;
 	unsigned _numObjects;
 	unsigned _numConcurrentObjects;
 	unsigned _numChunks;

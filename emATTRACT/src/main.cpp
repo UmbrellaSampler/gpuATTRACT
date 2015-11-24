@@ -17,6 +17,7 @@
 
 #include "RequestHandler.h"
 #include "SolverBase.h"
+#include "VA13Solver.h"
 
 using namespace std;
 
@@ -91,6 +92,8 @@ int main (int argc, char *argv[]) {
 	string recName;
 	string paramsName;
 
+	string solverName;
+
 	unsigned numCPUs;
 	unsigned chunkSize;
 	vector<int> devices;
@@ -115,8 +118,8 @@ int main (int argc, char *argv[]) {
 		/* description of the application */
 		stringstream desc;
 		desc << "An ATTRACT client that performs energy minimization using a BFGS method quasi-Newton method. "
-				<< "It not yet optimized for multi-GPU Systems";
-		TCLAP::CmdLine cmd(desc.str(), ' ', "1.0");
+				<< "It is not yet optimized for multi-GPU Systems";
+		TCLAP::CmdLine cmd(desc.str(), ' ', "1.1");
 
 		/* define required arguments */
 		TCLAP::ValueArg<string> dofArg("","dof","",true,"Structure (DOF) file.","*.dat", cmd);
@@ -128,11 +131,17 @@ int main (int argc, char *argv[]) {
 		TCLAP::ValueArg<string> gridArg("g","grid","Receptor grid file. (Default: receptorgrid.grid)",false, "receptorgrid.grid","*.grid", cmd);
 		TCLAP::ValueArg<string> paramArg("p","par","Attract parameter file. (Default: attract.par)",false,"attract.par","*.par", cmd);
 
+		vector<string> allowedSolvers = {"VA13", "BFGS"};
+		TCLAP::ValuesConstraint<string> vc_solvers(allowedSolvers);
+		TCLAP::ValueArg<string> solverTypeArg("s","solverType","Solver type. Available types: VA13, BFGS (Default: VA13)",false,"VA13",&vc_solvers, cmd);
+
 		TCLAP::ValueArg<unsigned> cpusArg("c","cpus","Number of CPU threads to be used. (Default: 0)", false, 0, "uint");
+
 		int numDevicesAvailable; cudaVerify(cudaGetDeviceCount(&numDevicesAvailable));
-		vector<int> allowedValues(numDevicesAvailable); iota(allowedValues.begin(), allowedValues.end(), 0);
-		TCLAP::ValuesConstraint<int> vc(allowedValues);
+		vector<int> allowedDevices(numDevicesAvailable); iota(allowedDevices.begin(), allowedDevices.end(), 0);
+		TCLAP::ValuesConstraint<int> vc(allowedDevices);
 		TCLAP::MultiArg<int> deviceArg("d","device","Device ID of serverMode to be used. Must be between 0 and the number of available GPUs minus one.", false, &vc);
+
 		TCLAP::ValueArg<unsigned> chunkSizeArg("","chunkSize", "Number of concurrently processed structures at the server. (Default: 5000)", false, 5000, "uint", cmd);
 
 		TCLAP::ValueArg<unsigned> rq_maxConcObjsArg("","maxConcurrency", "Max. number of concurrent structures that may be processed at the same time. (Default: 16000)", false, 16000, "uint", cmd);
@@ -159,6 +168,7 @@ int main (int argc, char *argv[]) {
 		rh_numChunks = rq_numChunksArg.getValue();
 		numToConsider = num2ConsiderArg.getValue();
 		whichToTrack = which2TrackArg.getValue();
+		solverName = solverTypeArg.getValue();
 
 	} catch (TCLAP::ArgException &e){
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
@@ -176,6 +186,7 @@ int main (int argc, char *argv[]) {
 	log->info() << "rh_numChunk=" << rh_numChunks << endl;
 	log->info() << "numToConsider=" << numToConsider << endl;
 	log->info() << "whichToTrack=" << whichToTrack << endl;
+	log->info() << "solverName=" << solverName << endl;
 
 	/* check if cpu or gpu is used */
 	as::Request::useMode_t serverMode = as::Request::unspecified;
@@ -324,8 +335,8 @@ int main (int argc, char *argv[]) {
 	reqHandler.setNumChunks(rh_numChunks);
 	reqHandler.setNumConcurrentObjects(rh_maxNumConcurrentObjects);
 	reqHandler.setServerOptions({gridId, recId, ligId, serverMode});
-	reqHandler.init(server, ema::SolverType::BFGS, DOF_molecules[1]);
-	ema::SolverBase::enableStats();
+	reqHandler.init(server, solverName, DOF_molecules[1]);
+//	ema::SolverBase::enableStats();
 	reqHandler.run();
 
 	vector<as::EnGrad> enGrads(numDofs);
@@ -339,6 +350,7 @@ int main (int argc, char *argv[]) {
 //	for(unsigned i = 0; i < DOF_molecules[0].size(); ++i) {
 //		ema::BFGSStatistic* stat = dynamic_cast<ema::BFGSStatistic*>(stats[i].get());
 //		if(stat) {
+//			num_objEval += stat->numRequests;
 //			switch (stat->convergence) {
 //			case ema::BFGSStatistic::Convergence::maxIter:
 //				++num_maxIter;
@@ -352,10 +364,13 @@ int main (int argc, char *argv[]) {
 //			case ema::BFGSStatistic::Convergence::unspecified:
 //				assert(false);
 //			}
-//		} else {
-//			assert(false);
 //		}
-//		num_objEval += stat->numRequests;
+//
+//		ema::VA13Statistic* stat_va13 = dynamic_cast<ema::VA13Statistic*>(stats[i].get());
+//		if(stat_va13) {
+//			num_objEval += stat_va13->numRequests;
+//		}
+//
 //		cerr << "#" << i << "\t" << DOF_molecules[0][i] << " " << enGrads[i].E_El + enGrads[i].E_VdW << endl;
 //		cerr << *stats[i] << endl;
 //

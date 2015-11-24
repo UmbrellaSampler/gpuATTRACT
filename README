@@ -14,7 +14,8 @@ New features/Comments:
 	The Server is now a shared library.
 	The interface to the rest of the ATTACT toolkit was improved. Original pdb-files, dat-files, grid-files and par-files are supported as data source. No dumping is needed anymore.
 	This includes the use of auto pivots or user-defined pivot, as well as an arbitrary receptor position.
-	Please inform me when the definition of these files is changed!!! 
+	Please inform me when the definition of these files is changed!!!
+ 
 1.1:
 	The first version of emATTRACT is available. It is a client that performs energy minimization by a BFGS quasi-Newton method. 
 	First test cases are very promising in terms of speedup and accuracy. However, the original docking performance is not (yet) achieved.
@@ -30,12 +31,18 @@ New features/Comments:
 	In the directory "gpuATTRACT/test-cases" you can find test cases for the original version of ATTRACT as well as the GPU-Clients (em/mcATTRACT). To run them, execute the respective *.sh scripts. 
 	To compare runtimes check the *.time output files.
 
+1.2:
+	The original FORTRAN ATTRACT minimizer (VA13) was adapted and integrated in emATTRACT. It turns out that VA13 generates better structures at the expense of additional function evaluations. 
+	VA13 is now the default minimizer! You can switch using the -s/--solverType [VA13|BFGS] flag. 
+	
+	Compiling issues with cuda-toolkit versions less or equal to 6.5 due to C++11 compatibility problems were detected. 
+
 	 
 
 INSTALLATION
 	
 Pre-installation steps:
-	Install the cuda-toolkit.
+	Install the cuda-toolkit of version >= 7.0.
 		Make sure that the following environment variables are set:
 		
 		export CUDADIR=path/to/cuda-toolkit #e.g. /usr/local/cuda 

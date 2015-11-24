@@ -14,37 +14,24 @@
 
 #include "RequestHandler.h"
 #include "Chunk.h"
+#include "SolverFactoryImpl.h"
 
 using std::cerr;
 using std::cout;
 using std::endl;
 
 
-void ema::RequestHandler::init(extServer& server, SolverType solverType, std::vector<extDOF>& dofs) {
+void ema::RequestHandler::init(extServer& server, std::string const& solverName, std::vector<extDOF>& dofs) {
 	_server = &server;
-	_solverType = solverType;
-
+	std::unique_ptr<SolverFactory> factory(new SolverFactoryImpl);
 
 	/* Fill the object array */
 	for (unsigned i = 0; i < dofs.size(); ++i) {
-		SharedSolver ptr;
+		SharedSolver solver;
+		solver = factory->createSolverByName(solverName);
 
-		switch (_solverType) {
-		case SolverType::BFGS:
-			ptr = std::make_shared<BFGSSolver>();
-			break;
-		case SolverType::unspecified:
-			cerr << "Error: " << "SolverType is unspecified." << endl;
-			exit(EXIT_FAILURE);
-			break;
-		default:
-			cerr << "Error: " << "Unknown solver specification." << endl;
-			exit(EXIT_FAILURE);
-			break;
-		}
-
-		ptr->setState(dofs[i]);
-		_objects.emplace_hint(_objects.end(), i, ptr);
+		solver->setState(dofs[i]);
+		_objects.emplace_hint(_objects.end(), i, solver);
 	}
 
 	/* set number of recieved objects */

@@ -15,7 +15,7 @@
 namespace ema {
 
 struct BFGSStatistic : public Statistic {
-	unsigned numRequests = 0;
+
 	unsigned numIter = 0;
 	unsigned numLineSearchIter = 0;
 	double gradNorm = 0.0;

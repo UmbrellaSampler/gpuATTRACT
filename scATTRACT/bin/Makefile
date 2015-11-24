@@ -81,8 +81,3 @@ cleanall: clean
 
 clean_deps:
 	find $(OBJDIR) -type f -name "*.d" -delete
-
-
-
-#EM_LDFLAGS = -L"." -L"${CUDADIR}/lib64"
-#MC_LDFLAGS = -L"." -L"${CUDADIR}/lib64"
