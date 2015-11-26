@@ -84,11 +84,11 @@ inline extDOF Vector2extDOF(const Vector& vec) {
 //	return objGrad;
 //}
 
-// for ATTRACT multiply gradients by -1.0
 inline ObjGrad extEnGrad2ObjGrad (const extEnGrad& enGrad) {
 	ObjGrad objGrad;
 	objGrad.obj = enGrad.E_VdW + enGrad.E_El;
 	objGrad.grad = Vector(6);
+	// for ATTRACT multiply gradients by -1.0
 	objGrad.grad  << -enGrad.ang.x, -enGrad.ang.y,  -enGrad.ang.z,
 					 -enGrad.pos.x, -enGrad.pos.y , -enGrad.pos.z;
 	return objGrad;

@@ -21,11 +21,6 @@ void ema::VA13Solver::run(coro_t::caller_type& ca) {
 		state_array[i] = state(i);
 	}
 
-//	//Debug
-//	cerr << "invoking minfor()" << endl;
-//	cerr << "state=" << state.transpose() << endl;
-//	cerr << "smuggler_ptr=" << &smuggler << endl;
-
 	minfor_(&smuggler, settings.maxFunEval, state_array);
 }
 
@@ -40,19 +35,14 @@ extern "C" void energy_for_fortran_to_call_(void* FortranSmuggler_ptr, double st
    // derived from BaseClass, then the world will end.
 	ema::VA13Solver::FortranSmuggler* smuggler = static_cast<ema::VA13Solver::FortranSmuggler*>(FortranSmuggler_ptr);
 
-//	//Debug
-//	cerr << "smuggler_ptr=" << smuggler << endl;
-
 	/* set the state */
 	ema::Vector& state = smuggler->state_ref();
 	for (int i = 0; i < state.rows(); ++i) {
 		state(i) = state_ptr[i];
 	}
+
 	/* call coroutine to break execution here until energy and gradients are available */
-//	//Debug
-//	cerr << "VA13: call coro" << endl;
 	smuggler->call_coro();
-//	cerr << "VA13: returned from coro" << endl;
 
 	/* get the state */
 	ema::ObjGrad& objGrad = smuggler->objective_ref();

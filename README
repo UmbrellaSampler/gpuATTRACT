@@ -7,7 +7,7 @@ This package contains
 	3.) mcATTRACT
 	  	Client that performs a Monte-Carlo search. It uses the Attract-Server-library.
 	4.) emATTRACT
-	  	Client that performs a energy minimization by a BFGS quasi-Newton method. It uses the Attract-Server-library.
+	  	Client that performs a energy minimization by various applicable optimization techniques. It uses the Attract-Server-library.
 
 New features/Comments:
 1.0:
@@ -35,7 +35,13 @@ New features/Comments:
 	The original FORTRAN ATTRACT minimizer (VA13) was adapted and integrated in emATTRACT. It turns out that VA13 generates better structures at the expense of additional function evaluations. 
 	VA13 is now the default minimizer! You can switch using the -s/--solverType [VA13|BFGS] flag. 
 	
-	Compiling issues with cuda-toolkit versions less or equal to 6.5 due to C++11 compatibility problems were detected. 
+	!!! Compiling issues with cuda-toolkit versions less or equal to 6.5 due to C++11 compatibility problems were detected.
+
+1.3:
+	Integrated the L-BFGS-B minimizer (FORTRAN) that is used in the PTools library into the emATTRACT minimization framework. 
+	L-BFGS-B is a limited memory version of BFGS for bound constrained optimization. However, we cannot use constraints at the moment.
+	
+	In total 3 different optimization algorithms are now available: VA13, BFGS, L-BFGS-S.   
 
 	 
 
@@ -54,11 +60,16 @@ Pre-installation steps:
 		sudo apt-get install libboost-coroutine1.54-dev
 		
 		(Hope, that works for you!)
+
+	To run the test-cases install ATTRACT:
+	
+		http://www.attract.ph.tum.de/services/ATTRACT/documentation.html
 	
 
 Installation of package:
 	Build the package using the makefile in the root directory (gpuATTRACT).
-	
+
+		e.g.
 		Build all binaries in RELEASE mode:	
 			make (-j#)
 	
@@ -69,7 +80,6 @@ Installation of package:
 			make help
 
 	To enable runtime library binding:
-		
 	
 	Soft links to the target executables and library is placed in gpuATTRACT/bin/ .
 	In order to use executables in scripts/cmd-line:

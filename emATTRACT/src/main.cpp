@@ -21,10 +21,10 @@
 
 using namespace std;
 
+/* global logger */
 namespace ema {
-Log::Logger* _log;
+std::unique_ptr<Log::Logger> log;
 }
-
 
 void init_logger( bool use_file = true) {
 	using namespace Log;
@@ -35,62 +35,32 @@ void init_logger( bool use_file = true) {
 #endif
 	if (use_file) {
 		string filename = "emATTRACT.log";
-		ema::_log = new Logger(level, filename.substr(0,filename.size()-4));
+		ema::log.reset(new Logger(level, filename.substr(0,filename.size()-4)));
 	} else {
-		ema::_log = new Logger(level, &(std::cerr));
+		ema::log.reset(new Logger(level, &(std::cerr)));
 	}
 }
 
 
-/* printing results to stderr */
-void printResultsOutput(unsigned numDofs, as::DOF* dofs, as::EnGrad* enGrads, std::vector<asUtils::Vec3f>& pivots)
-{
-	using namespace std;
-
-	int precisionSetting = cout.precision( );
-	ios::fmtflags flagSettings = cout.flags();
-	cout.setf(ios::showpoint);
-	cout.precision(6);
-
-	/* print header */
-	cout << "#pivot 1 " << pivots[0][0] << " " << pivots[0][1] << " " << pivots[0][2] << " " << endl;
-	cout << "#pivot 2 " << pivots[1][0] << " " << pivots[1][1] << " " << pivots[1][2] << " " << endl;
-	cout << "#centered receptor: true" << endl;
-	cout << "#centered ligands: true" << endl;
-	for (unsigned i = 0; i < numDofs; ++i) {
-		const as::EnGrad& enGrad = enGrads[i];
-		const as::DOF& dof = dofs[i];
-		cout << "#"<< i+1 << endl;
-		cout << "## Energy: " << enGrad.E_VdW + enGrad.E_El << endl;
-		cout << "## " << enGrad.E_VdW << " " << enGrad.E_El << endl;
-		cout << 0.0 << " " << 0.0 << " " << 0.0 << " "
-			 << 0.0 << " " << 0.0 << " " << 0.0 << endl;
-		cout << dof.ang.x << " " << dof.ang.y << " " << dof.ang.z << " "
-			 << dof.pos.x << " " << dof.pos.y << " " << dof.pos.z << endl;
-	}
-
-	cout.precision(precisionSetting);
-	cout.flags(flagSettings);
-}
-
+/* printing results to stdout */
+void printResultsOutput(unsigned numDofs, as::DOF* dofs, as::EnGrad* enGrads, std::vector<asUtils::Vec3f>& pivots);
 
 int main (int argc, char *argv[]) {
 	using namespace std;
+	using ema::log;
 
 	/* initialize Logger */
 	bool use_file = true;
 	init_logger(use_file);
-	unique_ptr<Log::Logger> log(ema::_log);
-
 
 	/* required variables */
 	string dofName;
 
 	/* optional variables */
-	string gridName;
-	string ligName;
-	string recName;
-	string paramsName;
+	string gridFileName;
+	string ligFileName;
+	string recFileName;
+	string paramsFileName;
 
 	string solverName;
 
@@ -131,9 +101,9 @@ int main (int argc, char *argv[]) {
 		TCLAP::ValueArg<string> gridArg("g","grid","Receptor grid file. (Default: receptorgrid.grid)",false, "receptorgrid.grid","*.grid", cmd);
 		TCLAP::ValueArg<string> paramArg("p","par","Attract parameter file. (Default: attract.par)",false,"attract.par","*.par", cmd);
 
-		vector<string> allowedSolvers = {"VA13", "BFGS"};
+		vector<string> allowedSolvers = {"VA13", "BFGS", "LBFGS-B"};
 		TCLAP::ValuesConstraint<string> vc_solvers(allowedSolvers);
-		TCLAP::ValueArg<string> solverTypeArg("s","solverType","Solver type. Available types: VA13, BFGS (Default: VA13)",false,"VA13",&vc_solvers, cmd);
+		TCLAP::ValueArg<string> solverTypeArg("s","solverType","Solver type. Available solvers: VA13|BFGS|LBFGS-B (Default: VA13)",false,"VA13",&vc_solvers, cmd);
 
 		TCLAP::ValueArg<unsigned> cpusArg("c","cpus","Number of CPU threads to be used. (Default: 0)", false, 0, "uint");
 
@@ -156,10 +126,10 @@ int main (int argc, char *argv[]) {
 		cmd.parse(argc, argv);
 
 		/* Assigne parsed values */
-		recName 	= recArg.getValue();
-		ligName 	= ligArg.getValue();
-		gridName 	= gridArg.getValue();
-		paramsName 	= paramArg.getValue();
+		recFileName 	= recArg.getValue();
+		ligFileName 	= ligArg.getValue();
+		gridFileName 	= gridArg.getValue();
+		paramsFileName 	= paramArg.getValue();
 		dofName 	= dofArg.getValue();
 		devices 	= deviceArg.getValue();
 		numCPUs 	= cpusArg.getValue();
@@ -174,10 +144,10 @@ int main (int argc, char *argv[]) {
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
 	}
 
-	log->info() << "recName=" << recName 		<< endl;
-	log->info() << "ligName=" << ligName 		<< endl;
-	log->info() << "gridName=" << gridName 		<< endl;
-	log->info() << "parName=" << paramsName 	<< endl;
+	log->info() << "recName=" << recFileName 		<< endl;
+	log->info() << "ligName=" << ligFileName 		<< endl;
+	log->info() << "gridName=" << gridFileName 		<< endl;
+	log->info() << "parName=" << paramsFileName 	<< endl;
 	log->info() << "dofName=" << dofName	 	<< endl;
 	log->info() << "numCPUs=" << numCPUs 		<< endl;
 	log->info() << "devices=[ "; for (auto device : devices) *log << device << " "; *log << "]"<<  endl;
@@ -222,12 +192,24 @@ int main (int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
+	/* shrink number of dofs artificially */
+	if (numToConsider >= 0 || whichToTrack >= 0) {
+		if (whichToTrack >= 0) {
+			DOF_molecules[1][0] = DOF_molecules[1][whichToTrack];
+			DOF_molecules[1].resize(1);
+			DOF_molecules[0].resize(1);
+		} else {
+			DOF_molecules[1].resize(numToConsider);
+			DOF_molecules[0].resize(numToConsider);
+		}
+	}
+
 	/*
 	 * initialize the scoring server: mngt(numItems, chunkSize, deviceBufferSize )
 	 * only a maximum number of items per request is allowed since too many items introduce a large overhead
 	 */
 
-	unsigned ligandSize = asDB::readProteinSizeFromPDB(ligName);
+	unsigned ligandSize = asDB::readProteinSizeFromPDB(ligFileName);
 	unsigned deviceBufferSize = ligandSize*chunkSize;
 	unsigned numDofs = DOF_molecules[0].size();
 	const unsigned numItems = (rh_maxNumConcurrentObjects + chunkSize - 1) / chunkSize;
@@ -238,7 +220,7 @@ int main (int argc, char *argv[]) {
 	log->info() << "numItems=" 			<< numItems 		<< endl;
 
 	/* check if there are too two many items per request */
-	const int maxItemsPerSubmit = 10000;
+	constexpr unsigned maxItemsPerSubmit = 10000;
 	if ((unsigned)ceil((double)numItems/rh_numChunks) > maxItemsPerSubmit) {
 		log->error() << "Too many items per request. Increase chunkSize" << endl;
 		exit(EXIT_FAILURE);
@@ -249,10 +231,10 @@ int main (int argc, char *argv[]) {
 	/* load proteins and grid, and get a handle to it*/
 	const int clientId = 0; // by specifing a client id, we may remove all added data by the by a call to removeClient(id)
 	int ligId, recId, gridId;
-	recId = server.addProtein(clientId, recName);
-	ligId = server.addProtein(clientId ,ligName);
-	gridId = server.addGridUnion(clientId, gridName);
-	server.addParamTable(paramsName);
+	recId = server.addProtein(clientId, recFileName);
+	ligId = server.addProtein(clientId ,ligFileName);
+	gridId = server.addGridUnion(clientId, gridFileName);
+	server.addParamTable(paramsFileName);
 
 	/* parse or get pivots. only two pivots/molecules are allowed */
 	if(autoPivot) {
@@ -317,68 +299,26 @@ int main (int argc, char *argv[]) {
 	 ** Next we need to initialize the client.
 	 */
 
-	//Debug
-	if (numToConsider >= 0 || whichToTrack >= 0) {
-		if (whichToTrack >= 0) {
-			DOF_molecules[1][0] = DOF_molecules[1][whichToTrack];
-			DOF_molecules[1].resize(1);
-			DOF_molecules[0].resize(1);
-			numDofs = 1;
-		} else {
-			DOF_molecules[1].resize(numToConsider);
-			DOF_molecules[0].resize(numToConsider);
-			numDofs = numToConsider;
-		}
-	}
-
 	ema::RequestHandler reqHandler;
 	reqHandler.setNumChunks(rh_numChunks);
 	reqHandler.setNumConcurrentObjects(rh_maxNumConcurrentObjects);
 	reqHandler.setServerOptions({gridId, recId, ligId, serverMode});
 	reqHandler.init(server, solverName, DOF_molecules[1]);
-//	ema::SolverBase::enableStats();
+	ema::SolverBase::enableStats();
 	reqHandler.run();
 
 	vector<as::EnGrad> enGrads(numDofs);
 	vector<std::unique_ptr<ema::Statistic>> stats;
 	reqHandler.getResult(DOF_molecules[0], enGrads, stats);
 
-//	unsigned num_objEval = 0;
-//	unsigned num_maxIter = 0;
-//	unsigned num_gradTolerance = 0;
-//	unsigned num_finitePrec = 0;
-//	for(unsigned i = 0; i < DOF_molecules[0].size(); ++i) {
-//		ema::BFGSStatistic* stat = dynamic_cast<ema::BFGSStatistic*>(stats[i].get());
-//		if(stat) {
-//			num_objEval += stat->numRequests;
-//			switch (stat->convergence) {
-//			case ema::BFGSStatistic::Convergence::maxIter:
-//				++num_maxIter;
-//				break;
-//			case ema::BFGSStatistic::Convergence::finitePrec:
-//				++num_finitePrec;
-//				break;
-//			case ema::BFGSStatistic::Convergence::gradTolerance:
-//				++num_gradTolerance;
-//				break;
-//			case ema::BFGSStatistic::Convergence::unspecified:
-//				assert(false);
-//			}
-//		}
-//
-//		ema::VA13Statistic* stat_va13 = dynamic_cast<ema::VA13Statistic*>(stats[i].get());
-//		if(stat_va13) {
-//			num_objEval += stat_va13->numRequests;
-//		}
-//
-//		cerr << "#" << i << "\t" << DOF_molecules[0][i] << " " << enGrads[i].E_El + enGrads[i].E_VdW << endl;
-//		cerr << *stats[i] << endl;
-//
-//
-//	}
-//
-//	cerr << "Total Statistic" << endl;
-//	cerr << "num_objEval=" << num_objEval << "(av " << double(num_objEval) / DOF_molecules[0].size() << ")"  << endl;
+	unsigned num_objEval = 0;
+	for(unsigned i = 0; i < DOF_molecules[0].size(); ++i) {
+		ema::Statistic* stat = stats[i].get();
+		if(stat) num_objEval += stat->numRequests;
+	}
+
+	cerr << "Total Statistic" << endl;
+	cerr << "num_objEval=" << num_objEval << "(av " << double(num_objEval) / DOF_molecules[0].size() << ")"  << endl;
 //	cerr << "num_gradTolerance=" << num_gradTolerance << endl;
 //	cerr << "num_finitePrec=" << num_finitePrec << endl;
 //	cerr << "num_maxIter=" << num_maxIter << endl;
@@ -396,6 +336,37 @@ int main (int argc, char *argv[]) {
 	log->info() << "exit" << endl;
 
 	return 0;
+}
+
+/* printing results to stdout */
+void printResultsOutput(unsigned numDofs, as::DOF* dofs, as::EnGrad* enGrads, std::vector<asUtils::Vec3f>& pivots)
+{
+	using namespace std;
+
+	int precisionSetting = cout.precision( );
+	ios::fmtflags flagSettings = cout.flags();
+	cout.setf(ios::showpoint);
+	cout.precision(6);
+
+	/* print header */
+	cout << "#pivot 1 " << pivots[0][0] << " " << pivots[0][1] << " " << pivots[0][2] << " " << endl;
+	cout << "#pivot 2 " << pivots[1][0] << " " << pivots[1][1] << " " << pivots[1][2] << " " << endl;
+	cout << "#centered receptor: true" << endl;
+	cout << "#centered ligands: true" << endl;
+	for (unsigned i = 0; i < numDofs; ++i) {
+		const as::EnGrad& enGrad = enGrads[i];
+		const as::DOF& dof = dofs[i];
+		cout << "#"<< i+1 << endl;
+		cout << "## Energy: " << enGrad.E_VdW + enGrad.E_El << endl;
+		cout << "## " << enGrad.E_VdW << " " << enGrad.E_El << endl;
+		cout << 0.0 << " " << 0.0 << " " << 0.0 << " "
+			 << 0.0 << " " << 0.0 << " " << 0.0 << endl;
+		cout << dof.ang.x << " " << dof.ang.y << " " << dof.ang.z << " "
+			 << dof.pos.x << " " << dof.pos.y << " " << dof.pos.z << endl;
+	}
+
+	cout.precision(precisionSetting);
+	cout.flags(flagSettings);
 }
 
 

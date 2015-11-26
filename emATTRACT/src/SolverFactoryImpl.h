@@ -22,6 +22,7 @@ private:
 	enum SolverType {
 		VA13,
 		BFGS,
+		LBFGS_B,
 		unspecified
 	};
 	static std::map<std::string, SolverType> _solverTypeMap;

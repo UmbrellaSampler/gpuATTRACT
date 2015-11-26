@@ -33,70 +33,7 @@ void init_logger( bool use_file = true) {
 	}
 }
 
-void printResultsOutput(unsigned numDOFs, as::DOF* dofs, as::EnGrad* enGrads, std::vector<asUtils::Vec3f>& pivots)
-{
-	using namespace std;
-
-	int precisionSetting = cout.precision( );
-	ios::fmtflags flagSettings = cout.flags();
-	cout.setf(ios::showpoint);
-	cout.precision(6);
-
-	/* print header */
-	cout << "#pivot 1 " << pivots[0][0] << " " << pivots[0][1] << " " << pivots[0][2] << " " << endl;
-	cout << "#pivot 2 " << pivots[1][0] << " " << pivots[1][1] << " " << pivots[1][2] << " " << endl;
-	cout << "#centered receptor: true" << endl;
-	cout << "#centered ligands: true" << endl;
-	for (int i = 0; i < numDOFs; ++i) {
-		const as::EnGrad& enGrad = enGrads[i];
-		const as::DOF& dof = dofs[i];
-		cout << "#"<< i+1 << endl;
-		cout << "## Energy: " << enGrad.E_VdW + enGrad.E_El << endl;
-		cout << "## " << enGrad.E_VdW << " " << enGrad.E_El << endl;
-		cout << 0.0 << " " << 0.0 << " " << 0.0 << " "
-			 << 0.0 << " " << 0.0 << " " << 0.0 << endl;
-		cout << dof.ang.x << " " << dof.ang.y << " " << dof.ang.z << " "
-			 << dof.pos.x << " " << dof.pos.y << " " << dof.pos.z << endl;
-	}
-
-	cout.precision(precisionSetting);
-	cout.flags(flagSettings);
-}
-
-void printResultsScore(unsigned numDOFs, as::DOF* dofs, as::EnGrad* enGrads)
-{
-	using namespace std;
-
-	int precisionSetting = cout.precision( );
-	ios::fmtflags flagSettings = cout.flags();
-
-	for (int i = 0; i < numDOFs; ++i) {
-		const as::EnGrad& enGrad = enGrads[i];
-		const as::DOF& dof = dofs[i];
-		cout.setf(ios::scientific);
-		cout.precision(8);
-		cout << " Energy: " << enGrad.E_VdW + enGrad.E_El << endl;
-		cout.unsetf(ios::scientific);
-
-		cout.setf(ios::fixed);
-		cout.precision(3);
-		cout << setw(12) << enGrad.E_VdW << setw(12) << enGrad.E_El << endl;
-		cout.unsetf(ios::fixed);
-
-		cout.setf(ios::scientific);
-		cout.precision(8);
-		int width = 20;
-		cout << " Gradients: "
-				<< setw(width) << enGrad.ang.x  << setw(width) << enGrad.ang.y  << setw(width) << enGrad.ang.z
-				<< setw(width) << enGrad.pos.x  << setw(width) << enGrad.pos.y  << setw(width) << enGrad.pos.z  << endl;
-		cout.unsetf(ios::scientific);
-
-	}
-
-	cout.precision(precisionSetting);
-	cout.flags(flagSettings);
-}
-
+void printResultsScore(unsigned numDOFs, as::DOF* dofs, as::EnGrad* enGrads);
 
 int main (int argc, char *argv[]) {
 
@@ -118,6 +55,9 @@ int main (int argc, char *argv[]) {
 	vector<int> devices;
 	int chunkSize;
 	int maxItemsPerSubmit;
+
+	int numToConsider;
+	int whichToTrack;
 	/* catch command line exceptions */
 	try {
 
@@ -128,17 +68,17 @@ int main (int argc, char *argv[]) {
 		*log << endl;
 
 		/* description of the application */
-		TCLAP::CmdLine cmd("An ATTRACT client that performs scoring.", ' ', "1.0");
+		TCLAP::CmdLine cmd("An ATTRACT client that performs scoring.", ' ', "1.1");
 
 		/* define required arguments */
-		TCLAP::ValueArg<string> recArg("r","receptor-pdb","pdb-file name of receptor.",true,"","*.pdb", cmd);
-		TCLAP::ValueArg<string> ligArg("l","ligand-pdb","pdb-file name of ligand.",true,"","*.pdb", cmd);
-		TCLAP::ValueArg<string> gridArg("g","grid","Receptor grid file.",true,"","*.grid", cmd);
-		TCLAP::ValueArg<string> paramArg("p","par","Attract parameter file.",true,"","*.par", cmd);
 		TCLAP::ValueArg<string> dofArg("","dof","",true,"Structure (DOF) file","*.dat", cmd);
 
-
 		/* define optional arguments */
+		TCLAP::ValueArg<string> recArg("r","receptor-pdb","pdb-file name of receptor. (Default: receptorr.pdb)", false,"receptorr.pdb","*.pdb", cmd);
+		TCLAP::ValueArg<string> ligArg("l","ligand-pdb","pdb-file name of ligand. (Default: ligandr.pdb)", false, "ligandr.pdb","*.pdb", cmd);
+		TCLAP::ValueArg<string> gridArg("g","grid","Receptor grid file. (Default: receptorgrid.grid)",false, "receptorgrid.grid","*.grid", cmd);
+		TCLAP::ValueArg<string> paramArg("p","par","Attract parameter file. (Default: attract.par)",false,"attract.par","*.par", cmd);
+
 		TCLAP::ValueArg<int> cpusArg("c","cpus","Number of CPU threads to be used. (Default: 0)", false, 0, "int", cmd);
 
 		int numDevicesAvailable; cudaGetDeviceCount(&numDevicesAvailable);
@@ -147,6 +87,9 @@ int main (int argc, char *argv[]) {
 		TCLAP::MultiArg<int> deviceArg("d","device","Device ID of GPU to be used.", false, &vc, cmd);
 		TCLAP::ValueArg<int> chunkSizeArg("","chunkSize", "Number of concurrently processed structures", false, 1000, "int", cmd);
 		TCLAP::ValueArg<int> maxItemsArg("","maxItems", "Max. number of item per submit", false, 10000, "int", cmd);
+
+		TCLAP::ValueArg<int> num2ConsiderArg("","num", "Number of configurations to consider (1 - num). (Default: All)", false, -1, "int", cmd);
+		TCLAP::ValueArg<int> which2TrackArg("","focusOn", "Condider only this configuration. (Default: -1)", false, -1, "int", cmd);
 
 
 		// parse cmd-line input
@@ -162,6 +105,8 @@ int main (int argc, char *argv[]) {
 		numCPUs 	= cpusArg.getValue();
 		chunkSize 	= chunkSizeArg.getValue();
 		maxItemsPerSubmit = maxItemsArg.getValue();
+		numToConsider = num2ConsiderArg.getValue();
+		whichToTrack = which2TrackArg.getValue();
 
 	} catch (TCLAP::ArgException &e){
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
@@ -176,6 +121,8 @@ int main (int argc, char *argv[]) {
 	log->info() << "devices=[ "; for (auto device : devices) *log << device << " "; *log << "]"<<  endl;
 	log->info() << "chunkSize=" << chunkSize 	<< endl;
 	log->info() << "maxItems=" << maxItemsPerSubmit	 <<  endl;
+	log->info() << "numToConsider=" << numToConsider << endl;
+	log->info() << "whichToTrack=" << whichToTrack << endl;
 
 	/* read dof header */
 	std::vector<asUtils::Vec3f> pivots;
@@ -198,6 +145,17 @@ int main (int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
+	/* shrink number of dofs artificially */
+	if (numToConsider >= 0 || whichToTrack >= 0) {
+		if (whichToTrack >= 0) {
+			DOF_molecules[1][0] = DOF_molecules[1][whichToTrack];
+			DOF_molecules[1].resize(1);
+			DOF_molecules[0].resize(1);
+		} else {
+			DOF_molecules[1].resize(numToConsider);
+			DOF_molecules[0].resize(numToConsider);
+		}
+	}
 
 	/* initialize the scoring server: mngt(numItems, chunkSize, deviceBufferSize )*/
 	/* only a maximum number of items per request is allowed since too many items introduce a large overhead.
@@ -302,6 +260,7 @@ int main (int argc, char *argv[]) {
 
 	as::EnGrad* GPU_enGradBuffer = GPU_enGrad.data();
     as::EnGrad* CPU_enGradBuffer = CPU_enGrad.data();
+
 
 	/* Perform calculations */
 	asUtils::Timer timer;
@@ -500,4 +459,38 @@ int main (int argc, char *argv[]) {
 
 
 	return 0;
+}
+
+void printResultsScore(unsigned numDOFs, as::DOF* dofs, as::EnGrad* enGrads)
+{
+	using namespace std;
+
+	int precisionSetting = cout.precision( );
+	ios::fmtflags flagSettings = cout.flags();
+
+	for (int i = 0; i < numDOFs; ++i) {
+		const as::EnGrad& enGrad = enGrads[i];
+		const as::DOF& dof = dofs[i];
+		cout.setf(ios::scientific);
+		cout.precision(8);
+		cout << " Energy: " << enGrad.E_VdW + enGrad.E_El << endl;
+		cout.unsetf(ios::scientific);
+
+		cout.setf(ios::fixed);
+		cout.precision(3);
+		cout << setw(12) << enGrad.E_VdW << setw(12) << enGrad.E_El << endl;
+		cout.unsetf(ios::fixed);
+
+		cout.setf(ios::scientific);
+		cout.precision(8);
+		int width = 20;
+		cout << " Gradients: "
+				<< setw(width) << enGrad.ang.x  << setw(width) << enGrad.ang.y  << setw(width) << enGrad.ang.z
+				<< setw(width) << enGrad.pos.x  << setw(width) << enGrad.pos.y  << setw(width) << enGrad.pos.z  << endl;
+		cout.unsetf(ios::scientific);
+
+	}
+
+	cout.precision(precisionSetting);
+	cout.flags(flagSettings);
 }

@@ -21,8 +21,6 @@ int sign(T val) {
 	return (T(0) < val) - (val < T(0));
 }
 
-//#define IO
- 
 void ema::BFGSSolver::run(coro_t::caller_type& ca) {
 
 	/* Algorithm 6.1, J. Nocedal, S. J. Wright, Numerical Optimization (2nd Edition), page 140 */
@@ -51,17 +49,6 @@ void ema::BFGSSolver::run(coro_t::caller_type& ca) {
 
 		assert(std::isnan(objGrad_curr.obj) == false);
 		p = -1.0 * H * objGrad_curr.grad;
-#ifdef IO
-		cerr << "#"<< iter <<" Solver" << endl;
-		cerr << "x_curr=" << x_curr.transpose() << endl;
-		cerr << "obj(x_curr)" << objGrad_curr.obj << endl;
-		cerr << "grad(x_curr)" << objGrad_curr.grad.transpose() << endl;
-		cerr << "dObj=" << dObj << endl;
-		cerr << "p=" << p.transpose() << endl;
-		cerr << "H=" << endl;
-		cerr << H << endl;
-		cerr << endl;
-#endif
 
 		switch (search_type) {
 		case WolfeRule:
@@ -83,18 +70,12 @@ void ema::BFGSSolver::run(coro_t::caller_type& ca) {
 			if (stats) {
 				statistic.convergence = BFGSStatistic::finitePrec;
 			}
-#ifdef IO
-			cerr << "Exiting: low objective improvement" << endl;
-#endif
 			break;
 		}
 		if (s.norm() < settings.dxTol ) {
 			if (stats) {
 				statistic.convergence = BFGSStatistic::finitePrec;
 			}
-#ifdef IO
-			cerr << "Exiting: low spatial improvement" << endl;
-#endif
 			break;
 		}
 
@@ -119,22 +100,12 @@ void ema::BFGSSolver::run(coro_t::caller_type& ca) {
 			y = theta * y  +  (1.0-theta)*Bs;
 			assert(!isnan(theta) || !isinf(theta));
 
-#ifdef IO
-			cerr << "neu y.dot(s)=" << ys << endl;
-			cerr << endl;
-#endif
 			ys = y.dot(s);
 		}
 
 		assert(ys > 0.0);
 
 		if (ys < settings.illTol) {
-#ifdef IO
-			cerr << "Exiting on ill-conditionedness" << endl;
-			cerr << "s=" << s.transpose() << endl;
-			cerr << "y=" << y.transpose() << endl;
-			cerr << "y.dot(s)=" << ys << endl;
-#endif
 			if (stats) {
 				statistic.convergence = BFGSStatistic::illconditioned;
 			}
@@ -219,49 +190,19 @@ inline double ema::BFGSSolver::zoom(coro_t::caller_type& ca, const Vector& x0, c
 		OBJGRAD(x_candidate, objGrad);
 
 		double phi_dash = p.dot(objGrad.grad);
-#ifdef IO
-		cerr << "\t\t" << "zoom " << endl;
-		cerr << "\t\t" << "new alpha= "  << alpha << " alpha_lo=" << alpha_lo << " alpha_hi=" << alpha_hi << endl;
-		cerr << "\t\t" << "min_alpha=" << min_alpha << endl;
-		cerr << "\t\t" << "x0=" << x0.transpose() << endl;
-		cerr << "\t\t" << "p=" << p.transpose() << endl;
-		cerr << "\t\t" << "x_cand=" << x_candidate.transpose() << endl;
-		cerr << "\t\t" << "obj(alpha)" << objGrad.obj << endl;
-		cerr << "\t\t" << "grad(alpha)" << objGrad.grad.transpose() << endl;
-		cerr << "\t\t" << "obj(alpha_lo)" << objGrad_lo.obj << endl;
-		cerr << "\t\t" << "grad(alpha_lo)" << objGrad_lo.grad.transpose() << endl;
-		cerr << "\t\t" << "obj(alpha_hi)" << objGrad_hi.obj << endl;
-		cerr << "\t\t" << "grad(alpha_hi)" << objGrad_hi.grad.transpose() << endl;
-
-		cerr << "\t\t" << "Type arbitrary character and press Enter: "
-		char dummy; std::cin >> dummy;
-		cerr << endl;
-#endif
 		assert(alpha <= MAX(alpha_hi,alpha_lo));
 		assert(alpha > MIN(alpha_hi,alpha_lo));
 
 		if ((objGrad.obj > objGrad0.obj + settings.c1*alpha*phi0_dash) || (objGrad.obj >= objGrad_lo.obj)) {
-#ifdef IO
-			cerr << "\t\t" << "taking 1. branch" << endl;
-#endif
 			if (fabs(objGrad.obj - objGrad_lo.obj) < 1.0e-9) {
 				if ((objGrad.grad-objGrad_lo.grad).lpNorm<Eigen::Infinity>() < 1.0e-5) {
-#ifdef IO
-					cerr << "\t\t" << "equal objective, and equal grad" << endl;
-#endif
 					break;
 				}
 				++count_equal_obj;
-#ifdef IO
-				cerr << "\t\t" << "equal objective, count=" << count_equal_obj << endl;
-#endif
 				if (count_equal_obj >= settings.maxEqualObj) {
 					break;
 				}
 			} else if (alpha < min_alpha) {
-#ifdef IO
-				cerr << "\t\t" << "alpha < min_alpha=" << endl;
-#endif
 				break;
 			}
 			alpha_hi = alpha;
@@ -269,9 +210,6 @@ inline double ema::BFGSSolver::zoom(coro_t::caller_type& ca, const Vector& x0, c
 			phi_dash_hi = phi_dash;
 		} else {
 			if (fabs(phi_dash) <= -settings.c2*phi0_dash) {
-#ifdef IO
-				cerr << "\t\t" << "taking 2.1 branch" << endl;
-#endif
 				assert(fabs(phi_dash) <= fabs(settings.c2*phi0_dash));
 				x_next = x_candidate;
 				objGrad_next = objGrad;
@@ -279,16 +217,10 @@ inline double ema::BFGSSolver::zoom(coro_t::caller_type& ca, const Vector& x0, c
 			}
 			if (phi_dash*(alpha_hi - alpha_lo) >= 0.0) {
 
-#ifdef IO
-				cerr << "\t\t" << "taking 2.2 branch" << endl;
-#endif
 				alpha_hi = alpha_lo;
 				objGrad_hi = objGrad_lo;
 				phi_dash_hi = phi_dash_lo;
 			}
-#ifdef IO
-			cerr << "\t\t" << "taking 2.3 branch" << endl;
-#endif
 			alpha_lo = alpha;
 			objGrad_lo = objGrad;
 			phi_dash_lo = phi_dash;
@@ -316,14 +248,8 @@ double ema::BFGSSolver::linesearch_WolfeRule(coro_t::caller_type& ca, const Vect
 	ObjGrad objGrad_curr;
 
 	const double phi0_dash = p.dot(objGrad0.grad);
-#ifdef IO
-	if(phi0_dash >= 0.0) {
-		cerr << "\t" << "phi0_dash >= 0.0 " << phi0_dash <<  endl;
-		cerr << "\t" << "p=" << p.transpose() << endl;
-		cerr << "\t" << "objGrad0.grad=" << objGrad0.grad.transpose() << endl;
-	}
-#endif
 	assert(phi0_dash < 0.0);
+
 	double phi_dash_curr;
 	double phi_dash_last = phi0_dash;
 
@@ -352,29 +278,10 @@ double ema::BFGSSolver::linesearch_WolfeRule(coro_t::caller_type& ca, const Vect
 
 		x_candidate = x0 + alpha_curr*p;
 		OBJGRAD(x_candidate, objGrad_curr);
-#ifdef IO
-		cerr << "\t" << "Linesearch " << endl;
-		cerr << "\t" << "x0=" << x0.transpose() << endl;
-		cerr << "\t" << "alpha_curr=" << alpha_curr << endl;
-		cerr << "\t" << "min_alpha=" << min_alpha << endl;
-		cerr << "\t" << "p=" << p.transpose() << endl;
-		cerr << "\t" << "x_cand=" << x_candidate.transpose() << endl;
-		cerr << "\t" << "obj(alpha_curr)" << objGrad_curr.obj << endl;
-		cerr << "\t" << "grad(alpha_curr)" << objGrad_curr.grad.transpose() << endl;
-		cerr << "\t" << "obj(alpha_last)" << objGrad_last.obj << endl;
-		cerr << "\t" << "grad(alpha_last)" << objGrad_last.grad.transpose() << endl;
-
-		cerr << "\t\t" << "Type arbitrary character and press Enter: "
-		char dummy; std::cin >> dummy;
-		cerr << endl;
-#endif
 
 		phi_dash_curr = p.dot(objGrad_curr.grad);
 
 		if ((objGrad_curr.obj > objGrad0.obj + settings.c1*alpha_curr*phi0_dash) || (objGrad_curr.obj >= objGrad_last.obj && i > 0)) {
-#ifdef IO
-			cerr << "\t" << "taking 1. branch: zoom" << endl;
-#endif
 			return zoom(ca, x0, p, objGrad0, phi0_dash, min_alpha,
 					alpha_last		, 	alpha_curr		,
 					objGrad_last	, 	objGrad_curr	,
@@ -384,18 +291,12 @@ double ema::BFGSSolver::linesearch_WolfeRule(coro_t::caller_type& ca, const Vect
 
 		if (fabs(phi_dash_curr) <= -settings.c2*phi0_dash) {
 			assert(fabs(phi_dash_curr) <= fabs(settings.c2*phi0_dash));
-#ifdef IO
-			cerr << "\t" << "taking 2. branch" << endl;
-#endif
 			x_next = x_candidate;
 			objGrad_next = objGrad_curr;
 			return alpha_curr;
 		}
 
 		if (phi_dash_curr >= 0.0) {
-#ifdef IO
-			cerr << "\t" << "taking 3. branch: zoom" << endl;
-#endif
 			return zoom(ca, x0, p, objGrad0, phi0_dash, min_alpha,
 					alpha_curr			, 	alpha_last		,
 					objGrad_curr		, 	objGrad_last	,
@@ -406,31 +307,11 @@ double ema::BFGSSolver::linesearch_WolfeRule(coro_t::caller_type& ca, const Vect
 		double tmp;
 		double cubic_interp = cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last);
 
-		if (cubic_interp <= settings.alpha_max/p_norm && cubic_interp > alpha_curr ) { //&& !std::isnan(cubic_interp)
+		if (cubic_interp <= settings.alpha_max/p_norm && cubic_interp > alpha_curr ) {
 			tmp = cubic_interp;
 		} else {
 			tmp = 1.5*alpha_curr;
 		}
-
-#ifdef IO
-		cerr << "\t" << "taking path to interpolate new alpha:" << endl;
-		cerr << "\t" << "alpha_curr="<< alpha_curr << endl;
-//		if (decreased_alpha) {
-//			cerr << "alpha decreased" << endl;
-//		}
-		cerr << "\t" << "next alpha=" << tmp << endl;
-//		cerr << "\t" << "cubic_interpolate(curr, 0)="
-//				<< cubic_interpolate(alpha_curr, 0.0, objGrad_curr, objGrad0, phi_dash_curr, phi0_dash) << endl;
-		cerr << "\t" << "cubic_interpolate(curr, last)="
-				<< cubic_interpolate(alpha_curr, alpha_last, objGrad_curr, objGrad_last, phi_dash_curr, phi_dash_last) << endl;
-		cerr << "\t" << "p_norm=" << p_norm << endl;
-		cerr << "\t" << "settings.alpha_max/p_norm=" << settings.alpha_max/p_norm << endl;
-		if (tmp > settings.alpha_max/p_norm) {
-			cerr << "\t" << "!!!" << "tmp("<< tmp << ")> settings.alpha_max/p_norm( " << settings.alpha_max/p_norm << ")"<< endl;
-		}
-
-#endif
-
 
 		alpha_last = alpha_curr;
 		objGrad_last = objGrad_curr;

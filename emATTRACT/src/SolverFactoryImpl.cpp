@@ -11,6 +11,7 @@
 #include "SolverFactoryImpl.h"
 #include "VA13Solver.h"
 #include "BFGSSolver.h"
+#include "LBFGS_B_Solver.h"
 
 
 
@@ -18,7 +19,8 @@
 std::map<std::string, ema::SolverFactoryImpl::SolverType> ema::SolverFactoryImpl::_solverTypeMap =
 	{
 			{"VA13", SolverType::VA13},
-			{"BFGS", SolverType::BFGS}
+			{"BFGS", SolverType::BFGS},
+			{"LBFGS-B", SolverType::LBFGS_B}
 	};
 
 template<typename T, typename... Args>
@@ -36,6 +38,9 @@ std::unique_ptr<ema::SolverBase> ema::SolverFactoryImpl::createSolverByNameImpl(
 		break;
 	case BFGS:
 		return make_unique<BFGSSolver>();
+		break;
+	case LBFGS_B:
+		return make_unique<LBFGS_B_Solver>();
 		break;
 	default:
 		cerr << "Error: " << "Unknown solver specification." << endl;
