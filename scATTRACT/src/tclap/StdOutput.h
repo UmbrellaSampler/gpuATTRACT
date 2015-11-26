@@ -217,7 +217,7 @@ StdOutput::_longUsage( CmdLineInterface& _cmd,
 		if ( !xorHandler.contains( (*it) ) )
 			{
 				spacePrint( os, (*it)->longID(), 75, 3, 3 ); 
-				spacePrint( os, (*it)->getDescription(), 75, 5, 0 ); 
+				spacePrint( os, (*it)->getDescription(), 75, 5, 0 );
 				os << std::endl;
 			}
 
@@ -260,9 +260,15 @@ inline void StdOutput::spacePrint( std::ostream& os,
 						stringLen = allowedLen;
 
 					// check for newlines
-					for ( int i = 0; i < stringLen; i++ )
-						if ( s[start+i] == '\n' )
+					for ( int i = 0; i < stringLen; i++ ) {
+//						if ( s[start+i] == '\n' )
+//							stringLen = i+1;
+						if ( s[start+i] == '\n' ) {
 							stringLen = i+1;
+							break;
+						}
+
+					}
 
 					// print the indent	
 					for ( int i = 0; i < indentSpaces; i++ )
@@ -277,7 +283,11 @@ inline void StdOutput::spacePrint( std::ostream& os,
 							allowedLen -= secondLineOffset;
 						}
 
-					os << s.substr(start,stringLen) << std::endl;
+					if (s[start+stringLen-1] == '\n') {
+						os << s.substr(start,stringLen);
+					} else {
+						os << s.substr(start,stringLen) << std::endl;
+					}
 
 					// so we don't start a line with a space
 					while ( s[stringLen+start] == ' ' && start < len )

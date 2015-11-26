@@ -4,6 +4,7 @@
 #include <list>
 #include <cassert>
 #include <cmath>
+#include <cfloat>
 #include <memory>
 #include <string>
 #include <cuda_runtime.h>
@@ -76,6 +77,8 @@ int main (int argc, char *argv[]) {
 	int numToConsider;
 	int whichToTrack;
 
+	int stats;
+
 	/* catch command line exceptions */
 	try {
 
@@ -114,10 +117,24 @@ int main (int argc, char *argv[]) {
 
 		TCLAP::ValueArg<unsigned> chunkSizeArg("","chunkSize", "Number of concurrently processed structures at the server. (Default: 5000)", false, 5000, "uint", cmd);
 
-		TCLAP::ValueArg<unsigned> rq_maxConcObjsArg("","maxConcurrency", "Max. number of concurrent structures that may be processed at the same time. (Default: 16000)", false, 16000, "uint", cmd);
+		TCLAP::ValueArg<unsigned> rq_maxConcObjsArg("","maxConcurrency", "Max. number of concurrent structures that may be processed at the same time. (Default: 16000)", false, 20000, "uint", cmd);
 		TCLAP::ValueArg<unsigned> rq_numChunksArg("","numChunks", "Number of request chunks. (Default: 2)", false, 2, "uint", cmd);
 		TCLAP::ValueArg<int> num2ConsiderArg("","num", "Number of configurations to consider (1 - num). (Default: All)", false, -1, "int", cmd);
-		TCLAP::ValueArg<int> which2TrackArg("","focusOn", "Condider only this configuration. (Default: -1)", false, -1, "int", cmd);
+
+		desc.str(""); // clear contents
+		desc << "Consider only the specified configuration. (Default: -1)" << endl
+				<< " -1: no special treatment. All structures are considered." << endl
+				<< ">=0: index of structure to explicitly focus on.";
+		TCLAP::ValueArg<int> which2TrackArg("","focusOn", desc.str(), false, -1, "int", cmd);
+
+		desc.str(""); // clear contents
+		desc << "Show statistics and result info of minimizer. (Default: 0)" << endl
+				<< "0: no statistics" << endl
+				<< "1: global statistics" << endl
+				<< "2: detailed statistics";
+		vector<int> allowedStatVal = {0, 1, 2};
+		TCLAP::ValuesConstraint<int> vc_stats(allowedStatVal);
+		TCLAP::ValueArg<int> statsArg("","stats", desc.str() , false, 0, &vc_stats, cmd);
 
 
 		cmd.xorAdd(cpusArg, deviceArg);
@@ -139,6 +156,7 @@ int main (int argc, char *argv[]) {
 		numToConsider = num2ConsiderArg.getValue();
 		whichToTrack = which2TrackArg.getValue();
 		solverName = solverTypeArg.getValue();
+		stats = statsArg.getValue();
 
 	} catch (TCLAP::ArgException &e){
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
@@ -157,6 +175,7 @@ int main (int argc, char *argv[]) {
 	log->info() << "numToConsider=" << numToConsider << endl;
 	log->info() << "whichToTrack=" << whichToTrack << endl;
 	log->info() << "solverName=" << solverName << endl;
+	log->info() << "stats=" << stats << endl;
 
 	/* check if cpu or gpu is used */
 	as::Request::useMode_t serverMode = as::Request::unspecified;
@@ -304,26 +323,63 @@ int main (int argc, char *argv[]) {
 	reqHandler.setNumConcurrentObjects(rh_maxNumConcurrentObjects);
 	reqHandler.setServerOptions({gridId, recId, ligId, serverMode});
 	reqHandler.init(server, solverName, DOF_molecules[1]);
-	ema::SolverBase::enableStats();
+	if (stats > 0)
+		ema::SolverBase::enableStats();
 	reqHandler.run();
 
-	vector<as::EnGrad> enGrads(numDofs);
-	vector<std::unique_ptr<ema::Statistic>> stats;
-	reqHandler.getResult(DOF_molecules[0], enGrads, stats);
+	vector<as::EnGrad> enGrads = reqHandler.getResultEnGrads();
+	DOF_molecules[0] = reqHandler.getResultStates();
+	vector<as::DOF>& dofs = DOF_molecules[0];
 
-	unsigned num_objEval = 0;
-	for(unsigned i = 0; i < DOF_molecules[0].size(); ++i) {
-		ema::Statistic* stat = stats[i].get();
-		if(stat) num_objEval += stat->numRequests;
+	/* 	<< "0: no statistics" << endl
+		<< "1: global statistics" << endl
+		<< "2: detailed statistics"; */
+	switch (stats) {
+	case 0:
+		break;
+	case 1:
+		{
+			vector<std::unique_ptr<ema::Statistic>> stats = reqHandler.getStatistics();
+			unsigned num_objEval = 0;
+			double minEnergy = DBL_MAX;
+			for(unsigned i = 0; i < DOF_molecules[0].size(); ++i) {
+				ema::Statistic* stat = stats[i].get();
+				if(stat) {
+					num_objEval += stat->numRequests;
+					double energy = enGrads[i].E_El + enGrads[i].E_VdW;
+					minEnergy = energy < minEnergy ? energy : minEnergy;
+				}
+			}
+			cerr << "Total Statistic" << endl;
+			cerr << "num_objEval=" << num_objEval << "(av " << double(num_objEval) / DOF_molecules[0].size() << ")"  << endl;
+			cerr << "min. Energy=" << minEnergy << endl;
+		}
+		break;
+	case 2:
+		{
+			vector<std::unique_ptr<ema::Statistic>> stats = reqHandler.getStatistics();
+			unsigned num_objEval = 0;
+			double minEnergy = DBL_MAX;
+			for(unsigned i = 0; i < DOF_molecules[0].size(); ++i) {
+				ema::Statistic* stat = stats[i].get();
+				if(stat) {
+					num_objEval += stat->numRequests;
+					double energy = enGrads[i].E_El + enGrads[i].E_VdW;
+					minEnergy = energy < minEnergy ? energy : minEnergy;
+					int w = 13;
+					cerr << "#" << i << endl;
+					cerr << enGrads[i] << endl;
+					cerr << dofs[i] << endl;
+					cerr << setw(w) << "FunEval"<< setw(w) << stat->numRequests << endl;
+				}
+			}
+			cerr << "Total Statistic" << endl;
+			cerr << "num_objEval=" << num_objEval << "(av " << double(num_objEval) / DOF_molecules[0].size() << ")"  << endl;
+			cerr << "min. Energy=" << minEnergy << endl;
+		}
+		break;
+
 	}
-
-	cerr << "Total Statistic" << endl;
-	cerr << "num_objEval=" << num_objEval << "(av " << double(num_objEval) / DOF_molecules[0].size() << ")"  << endl;
-//	cerr << "num_gradTolerance=" << num_gradTolerance << endl;
-//	cerr << "num_finitePrec=" << num_finitePrec << endl;
-//	cerr << "num_maxIter=" << num_maxIter << endl;
-
-
 
 	/* print results to stdout*/
 	printResultsOutput(numDofs, DOF_molecules[0].data(), enGrads.data(), pivots);

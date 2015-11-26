@@ -126,7 +126,7 @@ int lbfgsb_run(LBFGS_B_WorkingStruct& opt, double* x, double* f, double* g) {
 		return -1;
 	} else {
 		opt.task[59] = '\0';
-		fprintf(stderr, "(lbfgsb_run) unknown return value in task:%s\n", opt.task);
+//		fprintf(stderr, "(lbfgsb_run) unknown return value in task:%s\n", opt.task);
 		return -1;
 	}
 }
@@ -152,35 +152,29 @@ void ema::LBFGS_B_Solver::run(coro_t::caller_type& energyAndGradients) {
 
 	m_opt.iprint=-1;
 
-	double f = DBL_MAX;
+	objective.obj = DBL_MAX;
 
 	m_opt.max_iter = settings.maxFunEval;
 
 	while (1) {
-		double f = objective.obj;
+		double& f = objective.obj;
 		double* x = state.data();
 		double* g = objective.grad.data();
 		int rc = lbfgsb_run(m_opt, &x[0], &f, &g[0]);
 		if (rc == 0) {
 			break;
 		} else if (rc < 0) {
-			printf("lbfgsb stop with an error");
+//			printf("lbfgsb stop with an error");
 			break;
 		} else if (rc == 1) {
-
 			energyAndGradients();
-
-
 		} else {
 			assert(!"can not reach here");
 		}
 	}
-
-
 	m_opt.task[59]='\0'; //add a null terminating character to task[]
 
-
-	std::cout << m_opt.task  << " |  " << m_opt.niter << " iterations\n";
+//	std::cout << m_opt.task  << " |  " << m_opt.niter << " iterations\n";
 
 }
 

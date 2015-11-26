@@ -212,15 +212,15 @@ std::ostream& operator <<(std::ostream& outStream,
 	int precisionSetting = outStream.precision( );
 	ios::fmtflags flagSettings = outStream.flags();
 	outStream.setf(ios::scientific);
-	outStream.precision(6);
+	outStream.precision(3);
 
-	int w = 18;
-//	outStream 	<< setw(w) << "DOF"
-//				<< setw(w) << dof.pos.x << setw(w) << dof.pos.y << setw(w) << dof.pos.z
-//				<< setw(w) << dof.ang.x << setw(w) << dof.ang.y << setw(w) << dof.ang.z;
+	int w = 13;
+	outStream 	<< setw(w) << "DOF"
+				<< setw(w) << dof.pos.x << setw(w) << dof.pos.y << setw(w) << dof.pos.z
+				<< setw(w) << dof.ang.x << setw(w) << dof.ang.y << setw(w) << dof.ang.z;
 
-	outStream 	<< dof.ang.x << "\t" << dof.ang.y << "\t" << dof.ang.z << "\t"
-				<< dof.pos.x << "\t" << dof.pos.y << "\t" << dof.pos.z;
+//	outStream 	<< dof.ang.x << "\t" << dof.ang.y << "\t" << dof.ang.z << "\t"
+//				<< dof.pos.x << "\t" << dof.pos.y << "\t" << dof.pos.z;
 
 	if(T > 0) {outStream << endl;}
 	for (int i = 0; i < T; ++i) {
@@ -277,19 +277,19 @@ std::ostream& operator <<(std::ostream& outStream,
 	int precisionSetting = outStream.precision( );
 	ios::fmtflags flagSettings = outStream.flags();
 	outStream.setf(ios::scientific | ios::showpos);
-	outStream.precision(9);
+	outStream.precision(3);
 
-//	int w = 18;
-//	outStream << setw(w) << "Energy" << setw(w) << dof.E_VdW + dof.E_El  << setw(w) << dof.E_VdW << setw(w) << dof.E_El << endl;
-//	outStream 	<< setw(w) << "Gradients"
-//				<< setw(w) << dof.ang.x << setw(w) << dof.ang.y << setw(w) << dof.ang.z
-//				<< setw(w) << dof.pos.x << setw(w) << dof.pos.y << setw(w) << dof.pos.z;
+	int w = 13;
+	outStream << setw(w) << "Energy" << setw(w) << dof.E_VdW + dof.E_El  << setw(w) << dof.E_VdW << setw(w) << dof.E_El << endl;
+	outStream 	<< setw(w) << "Gradients"
+				<< setw(w) << dof.ang.x << setw(w) << dof.ang.y << setw(w) << dof.ang.z
+				<< setw(w) << dof.pos.x << setw(w) << dof.pos.y << setw(w) << dof.pos.z;
 
 //	outStream << dof.E_VdW + dof.E_El << "\t" << dof.E_VdW << "\t" << dof.E_El << "\t" << dof.ang.x << "\t" << dof.ang.y << "\t" << dof.ang.z << "\t"
 //				<< dof.pos.x << "\t" << dof.pos.y << "\t" << dof.pos.z;
 
-	outStream << dof.E_VdW << "\t" << dof.E_El << "\t" << dof.ang.x << "\t" << dof.ang.y << "\t" << dof.ang.z << "\t"
-				<< dof.pos.x << "\t" << dof.pos.y << "\t" << dof.pos.z;
+//	outStream << dof.E_VdW << "\t" << dof.E_El << "\t" << dof.ang.x << "\t" << dof.ang.y << "\t" << dof.ang.z << "\t"
+//				<< dof.pos.x << "\t" << dof.pos.y << "\t" << dof.pos.z;
 
 	if(T > 0) {outStream << endl;}
 	for (int i = 0; i < T; ++i) {

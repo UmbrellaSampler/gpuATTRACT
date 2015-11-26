@@ -22,7 +22,7 @@
 
 namespace ema {
 
-constexpr unsigned maxConcurrentObjects = 16000; // default (16000) maximum number of running coroutines that may exist at the same time.
+constexpr unsigned maxConcurrentObjects = 20000; // default (16000) maximum number of running coroutines that may exist at the same time.
 constexpr unsigned numChunks = 2; // default number of chunks running at the same time. Each chunk maintains maxConcurrentObjects/numChunks objects.
 constexpr unsigned minChunkSize = 10; // minimum chunksize that is worth to work with
 
@@ -44,8 +44,9 @@ public:
 
 	void run();
 
-	void getResult(std::vector<extDOF>& dofs, std::vector<extEnGrad>& results);
-	void getResult(std::vector<extDOF>& dofs, std::vector<extEnGrad>& results, std::vector<std::unique_ptr<Statistic>>& stats);
+	std::vector<extDOF> getResultStates();
+	std::vector<extEnGrad> getResultEnGrads();
+	std::vector<std::unique_ptr<Statistic>> getStatistics();
 
 private:
 

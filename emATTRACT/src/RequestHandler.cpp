@@ -77,20 +77,6 @@ void ema::RequestHandler::init(extServer& server, std::string const& solverName,
 		++count;
 
 	}
-
-	//Debug
-//	cerr << "_objects.size()=" << _numObjects << endl;
-//	cerr << "_numChunks=" << _numChunks << endl;
-//	unsigned i = 0;
-//	for (auto& chunk : _chunkList) {
-//		cerr << "chunk #" << i++ << "; size=" << chunk.size() << endl;
-//		unsigned j = 0;
-//		for (auto& obj : chunk.getContainer()) {
-//			cerr << "obj#" << j++ << " "<<  obj.second->getState().transpose() << endl;
-//		}
-//	}
-//	cerr << "_objects.size()=" << _objects.size() << endl;
-
 }
 
 //#define H_IO
@@ -134,76 +120,22 @@ void ema::RequestHandler::run() {
 	unsigned count = 1;
 	while(_finishedObjects.size () < _numObjects && count < 100000) {
 
-//		auto ringIter =  reqIds.begin();
-#ifdef H_IO
-		cerr << endl;
-		cerr << endl;
-		cerr << "new Round #" << count << endl;
-		cerr << "chunkSizes: ";
-		for (auto& chunk : _chunkList) {
-			cerr << chunk.size() << " ";
-		}
-		cerr << endl;
-		cerr << "_finishedObjects.size()=" << _finishedObjects.size() << " _objects.size()=" << _objects.size() << " _numObjects="<< _numObjects <<  endl;
-
-		// Debug
-		cerr << endl;
-		cerr << endl;
-		cerr << "Chunk sizes initial, _chunkList.size()=" << _chunkList.size() << endl;
-		for (auto& chunk : _chunkList) {
-			cerr << chunk.size() << " ";
-		}
-		cerr << endl;
-#endif
-
-
 		/* load balancing */
 
 		/* Adjust chunk sizes to balance the workload of each chunk.
 		 * This happens in case that the global object list is empty and
 		 * the chunks cannot be refilled by new initial configurations.
 		 * Do it not each iteration */
-
-
-
-		if (count%4 == 0 && true) {
+		if (_objects.empty() && count%4 == 0) {
 			double ratio = chunkSizeRatio(_chunkList);
-			if(_objects.empty() && ratio > 1.5) {
-#ifdef H_IO
-				cerr << "Load balance at a ratio of " << ratio << endl;
-
-				cerr << "Chunk sizes before balancing" << endl;
-				cerr << "_chunkList.size()="<< _chunkList.size() << endl;
-				for (auto& chunk : _chunkList) {
-					cerr << chunk.size() << endl;
-				}
-
-//				char dummy; std::cin >> dummy;
-//				cerr << endl;
-#endif
-
+			if(ratio > 1.5) {
 				loadBalanceChunks(_chunkList);
-
-#ifdef H_IO
-				cerr << "Chunk sizes after balancing" << endl;
-				for (auto& chunk : _chunkList) {
-					cerr << chunk.overAllSize() << endl;
-				}
-
-//				std::cin >> dummy;
-				cerr << endl;
-#endif
-			} // if
+			}
 		}
 
 
 			for (auto chunkListIter = _chunkList.begin(); chunkListIter != _chunkList.end(); ) {
 				auto& chunk = *chunkListIter;
-#ifdef H_IO
-				cerr << "chunk.fetchSize()="<< chunk.fetchSize() << endl;
-#endif
-	//			assert(chunk.fetchSize() > 0);
-
 				_collectedRequests.resize(0);
 				if (chunk.fetchSize() > 0) {
 					_collectedResults.resize(chunk.fetchSize());
@@ -214,9 +146,6 @@ void ema::RequestHandler::run() {
 	//				unsigned count = ema::server_pull(*_server, chunk.reqId(), _collectedResults.data());
 					unsigned count = asClient::server_pull(*_server, chunk.reqId(), _collectedResults.data());
 					nvtxRangePop();
-
-		//			cerr << endl;
-		//			cerr << "\t" << "_collectedResults.size()=" << _collectedResults.size() << " chunk.size()=" << chunk.size() << endl;
 
 					if (count >= 10000) {
 						cerr << "Error: pulling for Request." << std::endl;
@@ -235,17 +164,12 @@ void ema::RequestHandler::run() {
 			auto iter = chunk.getContainer().begin();
 			iter = chunk.getContainer().begin();
 
-			int takenObj = 0; // Debug
-			int convergedObj = 0;
-
-
 			while (iter != chunk.getContainer().end()) {
 				SharedSolver& solver = iter->second;
 				solver->step();
 
 				/* test for convergence */
 				if(solver->converged()) {
-					++convergedObj; // Debug
 
 					/* destroy coroutine context by calling finalize */
 					solver->finalize();
@@ -255,7 +179,6 @@ void ema::RequestHandler::run() {
 
 					/* move new structure/solver from object map if any left*/
 					if (!_objects.empty()) {
-						++takenObj; // Debug
 
 						ObjMapIter objIter = _objects.begin();
 						iter = chunk.getContainer().insert(iter, std::move(*objIter));
@@ -280,11 +203,6 @@ void ema::RequestHandler::run() {
 
 			chunk.setFetchSize(chunk.size());
 
-#ifdef H_IO
-			cerr << "\t" << "convergedObj=" << convergedObj << " takenObj=" << takenObj << endl;
-//			cerr << "\t" << "_collectedRequests.size()=" << _collectedRequests.size() << " chunk.size()=" << chunk.size() << endl;
-#endif
-
 			/* submit request */
 			if (_collectedRequests.size() > 0) { // there is still something to submit
 				nvtxRangePushA("Submit");
@@ -299,48 +217,38 @@ void ema::RequestHandler::run() {
 					std::exit(EXIT_FAILURE);
 				}
 				chunk.setReqId(reqId);
-//				*ringIter = reqId;
-//				++chunkListIter;
-//				++ringIter;
-
 			}
 
 			++chunkListIter;
-			// do not remove since objects might still reside in LBconts waiting for results from other chunks
-			// do it in function load balance instead.
-//			else { // remove the chunk
-//
-////				cerr << "\t" << "removing this chunk" << endl;
-//				_chunkList.erase(chunkListIter++);
-//			} // if
+			// do not remove any chunks since objects might still reside in LBconts waiting for results from other chunks
 
 		} // for each chunk
 
 		++count;
-
-
-
-		// Debug
-
 	} // while
-	assert(_finishedObjects.size () == _numObjects);
+	assert(_finishedObjects.size() == _numObjects);
 
 }
 
-void ema::RequestHandler::getResult(std::vector<extDOF>& dofs, std::vector<extEnGrad>& results) {
-	// cerr << dofs.size() << " " << finishedObjects.size() << endl;
-	dofs.resize(_finishedObjects.size());
-	results.resize(_finishedObjects.size());
+std::vector<ema::extDOF> ema::RequestHandler::getResultStates() {
+	std::vector<extDOF> stateVec(_finishedObjects.size());
 	for (unsigned i = 0; i < _finishedObjects.size(); ++i) {
-		dofs[i] = Vector2extDOF(_finishedObjects[i]->getState());
-		results[i] = ObjGrad2extEnGrad(_finishedObjects[i]->getObjective());
+		stateVec[i] = Vector2extDOF(_finishedObjects[i]->getState());
 	}
+	return stateVec;
 }
-
-void ema::RequestHandler::getResult(std::vector<extDOF>& dofs, std::vector<extEnGrad>& results, std::vector<std::unique_ptr<Statistic>>& stats) {
-	getResult(dofs, results);
-	stats.resize(_finishedObjects.size());
+std::vector<ema::extEnGrad> ema::RequestHandler::getResultEnGrads() {
+	std::vector<extEnGrad> enGradVec(_finishedObjects.size());
 	for (unsigned i = 0; i < _finishedObjects.size(); ++i) {
-		stats[i] = _finishedObjects[i]->getStats();
+		enGradVec[i] = ObjGrad2extEnGrad(_finishedObjects[i]->getObjective());
 	}
+	return enGradVec;
+}
+std::vector<std::unique_ptr<ema::Statistic>> ema::RequestHandler::getStatistics() {
+	std::vector<std::unique_ptr<Statistic>> statisticVec(_finishedObjects.size());
+	for (unsigned i = 0; i < _finishedObjects.size(); ++i) {
+		statisticVec[i] = _finishedObjects[i]->getStats();
+	}
+	return statisticVec;
+
 }
