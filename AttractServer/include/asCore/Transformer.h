@@ -95,7 +95,7 @@ public:
 
 
 	/*
-	 ** @brief: need verification for mode reduction!!!
+	 ** @brief: needs verification for mode reduction!!!
 	 */
 	static void h_RedEnForce(const as::Protein* prot,
 			const as::DOF& dof, const asUtils::RotMatf& rotmat,

@@ -5,6 +5,8 @@
 #include <asClient/DOFTransform.h>
 #include <asUtils/cudaMath.h>
 
+void
+
 void asClient::transformDOF_glob2rec(const std::vector<as::DOF>& dof_rec, std::vector<as::DOF>& dof_lig,
 			const asUtils::Vec3f& pivot_rec, const asUtils::Vec3f& pivot_lig,
 			bool centered_rec, bool centered_lig) {
@@ -87,7 +89,9 @@ void asClient::transformEnGrad_rec2glob(const std::vector<as::DOF>& dof_rec, std
 			force_lig = make_float3(force_lig_v[0], force_lig_v[1], force_lig_v[2]);
 
 			/* rotate torques */
-
+			// --> seems to be not possible. This is a serious problem.
+			// However, in the course of a multibody extension we need to implement a energy function
+			// that works in the global frame, which avoids this problem
 
 		}
 	}
