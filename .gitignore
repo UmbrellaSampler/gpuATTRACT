@@ -8,6 +8,8 @@
 **/bin/mcATTRACT
 **/bin/scATTRACT
 **/libAttractServer.so
+.cproject
+.project
 */.cproject
 */.project
 **/.settings/
