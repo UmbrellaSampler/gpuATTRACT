@@ -38,8 +38,13 @@ c     Parameters
 
 ccc----------------ZHE--------------------
       integer mover, trials
+<<<<<<< HEAD
       real*8 cumu_ws,sws
       dimension cumu_ws(maxmover)
+=======
+      real*8 cumu_sws,sws
+      dimension cumu_sws(maxmover)
+>>>>>>> e3da359249e1760bb15f6e8039cf95a766ca6393
 ccc---------------------------------------
 
 c     Local variables
@@ -71,16 +76,17 @@ c     integer dseed,i,ii,j,jj,k,kk,itr,nfun
 cccc-------------------ZHE--------------------
 C$$$  nmover = 3 [rigid_body_mover, ensemble_mover, both]
 C$$$
-      cumu_ws(1) = 0;
-      cumu_ws(2) = 0;
-      cumu_ws(3) = 1;
+
+      cumu_sws(1) = 5;
+      cumu_sws(2) = 5;
+      cumu_sws(3) = 10;
       sws = 0;
       do i=1,maxmover
-         sws = sws+cumu_ws(i)
+         sws = sws+cumu_sws(i)
       enddo
-      cumu_ws(1) = cumu_ws(1)/sws
+      cumu_sws(1) = cumu_sws(1)/sws
       do i=2,maxmover
-         cumu_ws(i) = cumu_ws(i-1)+cumu_ws(i)/sws
+         cumu_sws(i) = cumu_sws(i-1)+cumu_sws(i)/sws
       enddo
 
       do i=1, maxlig
@@ -153,20 +159,7 @@ c   start Monte Carlo
       iaccept=1
 c      print*, "vmax: ", imcmax
       do 4000 ijk=1,imcmax
-         if (ijk==imcmax/2+1) then
-c            print*,"ens sampling weight increased",ijk
-            cumu_ws(1) = 5;
-            cumu_ws(2) = 10;
-            cumu_ws(3) = 10;
-            sws = 0;
-            do i=1,maxmover
-               sws = sws+cumu_ws(i)
-            enddo
-            cumu_ws(1) = cumu_ws(1)/sws
-            do i=2,maxmover
-               cumu_ws(i) = cumu_ws(i-1)+cumu_ws(i)/sws
-            enddo
-          endif
+
 c         do 4100 inner_i=1, 1000
 c      write (ERROR_UNIT,*), ijk, imcmax
 c store old Euler angle, position and ligand and receptor coordinates
@@ -225,31 +218,44 @@ c if ligand flex is included store deformation factor in every mode in dlig(j)
       endif
 c old Cartesians are not stored!
 c generate a total of ju random numbers
+C$$$c      print*,"dseed 1",dseed
+C$$$      call GGUBS(dseed,2,rr)
+C$$$c      print*, "dseed 2 ",dseed
 
-      call GGUBS(dseed,2,rr)
+C$$$      call random_mover(rr(1),cumu_sws,mover,maxmover)
+C$$$c      print*,"mover ",mover
+C$$$      if ( mover.eq.1 ) trials = trials+1
 
-      call random_mover(rr(1),cumu_ws,mover,maxmover)
-c      print*,"mover ",mover
+C$$$        if (mover.eq.1 .or. mover.eq.3 .or. ensprob.eq.0) then
+C$$$c           trials = trials+1
+C$$$c           print*,"dseed 2p",dseed
+C$$$           call rigid_body_mover(nlig,jl,iori,itra,phi,ssi,rot,xa,ya,za,
+C$$$     1          fixre,scalerot,scalecenter,dseed)
+C$$$c           print*, "dseed 3",dseed
+C$$$        endif
+C$$$        if (mover.eq.2 .or. mover.eq.3) then
+C$$$           call GGUBS(dseed,3,rr)
+C$$$c           print*, "dseed 4", dseed
+C$$$           do i=1,nlig
+C$$$              if (nrens(i).gt.0.and.morph(i).lt.0) then
+C$$$C$$$                 call GGUBS(dseed,3,rr)
+C$$$                 if (rr(1).lt.ensprob.and.rr(3).lt.float(i)/nlig) then
+C$$$c	    ens(i) = int(rr(2)*nrens(i))+1
+C$$$                    call enstrans(cartstatehandle,i-1,ens(i),rr(2),
+C$$$     2                   ens(i))
+C$$$                    exit
+C$$$                 endif
+C$$$              endif
+C$$$           enddo
+C$$$        endif
 
-        if (mover.eq.1 .or. mover.eq.3 .or. ensprob.eq.0) then
-           trials = trials+1
-           call rigid_body_mover(nlig,jl,iori,itra,phi,ssi,rot,xa,ya,za,
-     1          fixre,scalerot,scalecenter,dseed)
-        endif
-        if (mover.eq.2 .or. mover.eq.3) then
-           call GGUBS(dseed,3,rr)
-           do i=1,nlig
-              if (nrens(i).gt.0.and.morph(i).lt.0) then
-C$$$                 call GGUBS(dseed,3,rr)
-                 if (rr(1).lt.ensprob.and.rr(3).lt.float(i)/nlig) then
-c	    ens(i) = int(rr(2)*nrens(i))+1
-                    call enstrans(cartstatehandle,i-1,ens(i),rr(2),
-     2                   ens(i))
-                    exit
-                 endif
-              endif
-           enddo
-        endif
+
+      call mc_ensemble_move(cartstatehandle,nlig,fixre,
+     1 iori,itra,ens,nrens,ensprob,phi,ssi,rot,xa,ya,za,
+     2 scalecenter,scalerot,cumu_sws,mover,dseed)
+
+      if ( mover.eq.1 ) trials = trials+1
+
 c make a move in HM direction and update x, y(1,i) and y(2,i) and dlig(j)
 c     call crand(dseed,ju+1,rr)
       call GGUBS(dseed,jn+1,rr)
@@ -320,9 +326,14 @@ c      call update_bias( enew );
         gesa=enew
         energies(:)=energies0(:)
       iaccept=1
+<<<<<<< HEAD
       if (mover.eq.1 .or. mover.eq.3 .or. ensprob.eq.0) then
       	 accepts=accepts+1
       endif
+=======
+      if (mover.eq.1 ) accepts=accepts+1
+
+>>>>>>> e3da359249e1760bb15f6e8039cf95a766ca6393
 C$$$      print*,"iscore ",iscore
 C$$$      if (iscore.eq.2) then
 C$$$        call print_struc2(seed,label,gesa,energies,nlig,
@@ -386,6 +397,7 @@ c if ligand flex is included store deformation factor in every mode in dlig(j)
       enddo
 
 c 4100 continue
+<<<<<<< HEAD
 
 c      if(mod(trials,50)==0) then
         if ( 1.eq.0 ) then
@@ -403,6 +415,25 @@ c control scalerot range in [0 pi]
          endif
       endif
       print*,"acc,tri,rot,center:",accepts,trials,scalerot,scalecenter
+=======
+c      print*,"accepts ", accepts
+
+      if(mod(trials,25)==0) then
+         accept_rate = real(accepts)/trials
+         if(accept_rate.gt.0.3) then
+            scalecenter=scalecenter*1.1
+	    if ( scalerot*1.1<pi ) then
+c control scalerot range in [0 pi]
+               scalerot=scalerot*1.1
+	    endif
+         endif
+         if(accept_rate.lt.0.3) then
+            scalecenter=scalecenter*0.9
+            scalerot=scalerot*0.9
+         endif
+      endif
+
+>>>>>>> e3da359249e1760bb15f6e8039cf95a766ca6393
 
       if (iscore.eq.2) then
         call print_struc2(seed,label,gesa,energies,nlig,
