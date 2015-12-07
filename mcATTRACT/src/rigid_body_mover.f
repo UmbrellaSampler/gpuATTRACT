@@ -43,9 +43,7 @@ c       call crand(dseed,5,rr)
         call GGUBS(dseed,5,rr)
 
         call random_point_on_unit_sphere(dseed,rr)
-        print*,"rr(4) before",rr(4)
         call random_rotation_angle(dseed,scalerot,rr(4))
-        print*,"rr(4) after",rr(4)
         call axisrot(rr,randrot)
         call euler2rotmat(phi(i),ssi(i),rot(i),rotmat)
         call matmult(rotmat,randrot,newrot)
@@ -98,7 +96,6 @@ c make a translation of the ligand center
       if(itra.eq.1) then
       do 1220 i=1+fixre,nlig
       ii=jl+3*(i-fixre-1)
-      print*,"scalecenter,rr",scalecenter,rr(ii+1),rr(ii+2),rr(ii+3)
       xa(i)=xa(i)+scalecenter*(rr(ii+1))
       ya(i)=ya(i)+scalecenter*(rr(ii+2))
       za(i)=za(i)+scalecenter*(rr(ii+3))
