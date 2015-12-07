@@ -1,9 +1,3 @@
-/*
- * CPUWorker.h
- *
- *  Created on: Feb 5, 2015
- *      Author: uwe
- */
 
 #ifndef CPUWORKER_H_
 #define CPUWORKER_H_

@@ -1,9 +1,3 @@
-/*
- * NLGrid.cpp
- *
- *  Created on: Jan 14, 2015
- *      Author: uwe
- */
 
 #include <cmath>
 

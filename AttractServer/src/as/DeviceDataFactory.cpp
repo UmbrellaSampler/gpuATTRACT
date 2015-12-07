@@ -1,9 +1,3 @@
-/*
- * DeviceGridUnion.cpp
- *
- *  Created on: Jan 14, 2015
- *      Author: uwe
- */
 
 #include "cuda_runtime.h"
 #include <cstring>

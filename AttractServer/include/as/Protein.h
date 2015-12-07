@@ -1,9 +1,3 @@
-/*
- * Protein.h
- *
- *  Created on: Oct 16, 2014
- *      Author: uwe
- */
 
 #ifndef PROTEIN_H_
 #define PROTEIN_H_

@@ -1,9 +1,3 @@
-/*
- * GPUWorker.h
- *
- *  Created on: Jan 21, 2015
- *      Author: uwe
- */
 
 #ifndef GPUWORKER_H_
 #define GPUWORKER_H_

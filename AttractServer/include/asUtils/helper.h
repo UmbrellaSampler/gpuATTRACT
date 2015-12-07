@@ -1,9 +1,3 @@
-/*
- * helper.h
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 
 #ifndef HELPER_H_
 #define HELPER_H_

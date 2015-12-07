@@ -1,9 +1,3 @@
-/*
- * utils_types.h
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 
 #ifndef UTILS_TYPES_H_
 #define UTILS_TYPES_H_

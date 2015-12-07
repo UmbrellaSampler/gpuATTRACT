@@ -1,9 +1,3 @@
-/*
- * Grid.h
- *
- *  Created on: Aug 7, 2014
- *      Author: uwe
- */
 
 #ifndef INTRPLGRID_H_
 #define INTRPLGRID_H_

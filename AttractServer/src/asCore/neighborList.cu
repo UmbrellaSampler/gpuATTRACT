@@ -1,9 +1,3 @@
-/*
- * neighborList.cu
- *
- *  Created on: Jan 22, 2015
- *      Author: uwe
- */
 
 #include "asCore/neighborList.h"
 #include "as/asTypes.h"

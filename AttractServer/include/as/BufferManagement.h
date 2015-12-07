@@ -1,9 +1,3 @@
-/*
- * BufferManagement.h
- *
- *  Created on: Jan 28, 2015
- *      Author: uwe
- */
 
 #ifndef BUFFERMANAGEMENT_H_
 #define BUFFERMANAGEMENT_H_

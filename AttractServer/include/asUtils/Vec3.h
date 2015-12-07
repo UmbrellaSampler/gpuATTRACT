@@ -1,9 +1,3 @@
-/*
- * Vector3.h
- *
- *  Created on: Nov 21, 2014
- *      Author: tchipevn
- */
 
 #ifndef VEC3_H_
 #define VEC3_H_

@@ -1,9 +1,3 @@
-/*
- * timer.h
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 
 #ifndef TIMER_H_
 #define TIMER_H_

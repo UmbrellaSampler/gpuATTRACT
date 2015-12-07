@@ -1,9 +1,3 @@
-/*
- * WorkItem.h
- *
- *  Created on: Sep 1, 2015
- *      Author: uwe
- */
 
 #ifndef WORKITEM_H_
 #define WORKITEM_H_

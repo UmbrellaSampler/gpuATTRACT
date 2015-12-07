@@ -1,9 +1,3 @@
-/*
- * Dispatcher.h
- *
- *  Created on: Jan 30, 2015
- *      Author: uwe
- */
 
 #ifndef DISPATCHER_H_
 #define DISPATCHER_H_

@@ -1,9 +1,3 @@
-/*
- * core_helpers.h
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 
 #ifndef CORE_HELPERS_H_
 #define CORE_HELPERS_H_

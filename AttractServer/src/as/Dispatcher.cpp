@@ -1,9 +1,3 @@
-/*
- * Dispatcher.cpp
- *
- *  Created on: Jan 30, 2015
- *      Author: uwe
- */
 
 #include <cstring>
 #include <cassert>

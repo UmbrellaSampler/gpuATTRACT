@@ -1,9 +1,3 @@
-/*
- * Worker.h
- *
- *  Created on: Jan 20, 2015
- *      Author: uwe
- */
 
 #ifndef WORKER_H_
 #define WORKER_H_

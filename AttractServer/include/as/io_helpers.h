@@ -1,9 +1,3 @@
-/*
- * io_helpers.h
- *
- *  Created on: Jan 16, 2015
- *      Author: uwe
- */
 
 #ifndef IO_HELPERS_H_
 #define IO_HELPERS_H_

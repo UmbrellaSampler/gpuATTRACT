@@ -1,9 +1,3 @@
-/*
- * DOFTransform.cpp
- *
- *  Created on: Sep 14, 2015
- *      Author: uwe
- */
 
 #include <cmath>
 #include <cassert>

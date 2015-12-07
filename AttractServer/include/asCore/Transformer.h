@@ -1,9 +1,3 @@
-/*
- * Transformer.h
- *
- *  Created on: Jan 22, 2015
- *      Author: uwe
- */
 
 #ifndef TRANSFORMER_H_
 #define TRANSFORMER_H_

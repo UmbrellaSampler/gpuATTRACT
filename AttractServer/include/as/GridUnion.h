@@ -1,9 +1,3 @@
-/*
- * GridUnion.h
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 
 #ifndef GRIDUNION_H_
 #define GRIDUNION_H_

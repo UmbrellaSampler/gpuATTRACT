@@ -1,9 +1,3 @@
-/*
- * SaveVector.h
- *
- *  Created on: Jan 20, 2015
- *      Author: uwe
- */
 
 #ifndef SMARTVECTOR_H_
 #define SMARTVECTOR_H_

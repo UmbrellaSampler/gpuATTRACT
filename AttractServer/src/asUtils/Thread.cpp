@@ -1,9 +1,3 @@
-/*
- * Thread.cpp
- *
- *  Created on: Jan 20, 2015
- *      Author: uwe
- */
 
 #include "asUtils/Thread.h"
 

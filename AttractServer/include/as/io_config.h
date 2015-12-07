@@ -1,9 +1,3 @@
-/*
- * io_config.h
- *
- *  Created on: Jan 16, 2015
- *      Author: uwe
- */
 
 #ifndef IO_CONFIG_H_
 #define IO_CONFIG_H_

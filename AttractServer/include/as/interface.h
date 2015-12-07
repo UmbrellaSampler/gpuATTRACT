@@ -1,9 +1,3 @@
-/*
- * interface.h
- *
- *  Created on: Aug 25, 2014
- *      Author: uwe
- */
 
 #ifndef INTERFACE_H_
 #define INTERFACE_H_

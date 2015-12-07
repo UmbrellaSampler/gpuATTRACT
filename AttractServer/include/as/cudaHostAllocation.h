@@ -1,9 +1,3 @@
-/*
- * CompBuffer.h
- *
- *  Created on: Jan 22, 2015
- *      Author: uwe
- */
 
 #ifndef CUDAHOSTALLOCATION_H_
 #define CUDAHOSTALLOCATION_H_

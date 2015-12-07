@@ -1,9 +1,3 @@
-/*
- * RotMat.h
- *
- *  Created on: Sep 1, 2015
- *      Author: uwe
- */
 
 #ifndef ROTMAT_H_
 #define ROTMAT_H_

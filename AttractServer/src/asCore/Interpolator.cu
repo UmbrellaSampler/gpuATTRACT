@@ -1,9 +1,3 @@
-/*
- * Interpolator.cu
- *
- *  Created on: Jan 22, 2015
- *      Author: uwe
- */
 
 #include "asCore/Interpolator.h"
 #include "asUtils/macros.h"

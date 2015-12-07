@@ -1,9 +1,3 @@
-/*
- * ServerMangagement.cpp
- *
- *  Created on: Feb 3, 2015
- *      Author: uwe
- */
 
 #include <iostream>
 #include <fstream>

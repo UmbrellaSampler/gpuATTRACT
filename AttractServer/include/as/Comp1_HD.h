@@ -1,9 +1,3 @@
-/*
- * Comp1_HD.h
- *
- *  Created on: Jan 22, 2015
- *      Author: uwe
- */
 
 #ifndef COMP1_HD_H_
 #define COMP1_HD_H_

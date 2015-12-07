@@ -1,9 +1,3 @@
-/*
- * coordTransform.h
- *
- *  Created on: Oct 16, 2014
- *      Author: uwe
- */
 
 #ifndef COORDTRANSFORM_H_
 #define COORDTRANSFORM_H_

@@ -1,9 +1,3 @@
-/*
- * RingArray.h
- *
- *  Created on: Sep 1, 2015
- *      Author: uwe
- */
 
 #ifndef RINGARRAY_H_
 #define RINGARRAY_H_

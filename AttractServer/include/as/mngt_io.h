@@ -1,9 +1,3 @@
-/*
- * mngt_io.h
- *
- *  Created on: Jan 18, 2015
- *      Author: uwe
- */
 
 #ifndef MNGT_IO_H_
 #define MNGT_IO_H_

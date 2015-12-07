@@ -1,9 +1,3 @@
-/*
- * Interpolator.h
- *
- *  Created on: Jan 22, 2015
- *      Author: uwe
- */
 
 #ifndef INTERPOLATOR_H_
 #define INTERPOLATOR_H_

@@ -1,9 +1,3 @@
-/*
- * Shared.h
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 
 #ifndef SHARED_H_
 #define SHARED_H_

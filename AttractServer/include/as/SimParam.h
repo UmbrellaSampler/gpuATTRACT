@@ -1,9 +1,3 @@
-/*
- * SimParam.h
- *
- *  Created on: Sep 1, 2015
- *      Author: uwe
- */
 
 #ifndef SIMPARAM_H_
 #define SIMPARAM_H_

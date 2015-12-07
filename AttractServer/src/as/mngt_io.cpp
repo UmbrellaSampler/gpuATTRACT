@@ -1,9 +1,3 @@
-/*
- * mngt_io.cpp
- *
- *  Created on: Jan 18, 2015
- *      Author: uwe
- */
 
 #include <sstream>
 #include <iomanip>

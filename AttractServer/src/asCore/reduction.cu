@@ -1,6 +1,3 @@
-/*
-    Parallel reduction kernels
-*/
 
 #include <stdio.h>
 

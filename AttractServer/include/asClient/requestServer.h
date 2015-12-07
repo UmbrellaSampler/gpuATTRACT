@@ -1,9 +1,3 @@
-/*
- * requestServer.h
- *
- *  Created on: Oct 5, 2015
- *      Author: uwe
- */
 
 #ifndef REQUESTSERVER_H_
 #define REQUESTSERVER_H_

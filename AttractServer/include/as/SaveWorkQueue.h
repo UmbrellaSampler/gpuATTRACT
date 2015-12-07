@@ -1,9 +1,3 @@
-/*
- * SaveWorkQueue.h
- *
- *  Created on: Jan 20, 2015
- *      Author: uwe
- */
 
 #ifndef SAVEWORKQUEUE_H_
 #define SAVEWORKQUEUE_H_

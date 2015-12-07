@@ -1,9 +1,3 @@
-/*
- * Transformer.cu
- *
- *  Created on: Jan 22, 2015
- *      Author: uwe
- */
 
 #include "asCore/Transformer.h"
 #include "asCore/reduction.h"

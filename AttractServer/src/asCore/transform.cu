@@ -1,9 +1,3 @@
-/*
- * transform.cu
- *
- *  Created on: Nov 26, 2014
- *      Author: uwe
- */
 
 #include "asCore/transform.h"
 #include "config.h"

@@ -1,9 +1,3 @@
-/*
- * read_pdb.h
- *
- *  Created on: Aug 11, 2015
- *      Author: uwe
- */
 
 #ifndef ASDB_READ_FILE_H_
 #define ASDB_READ_FILE_H_

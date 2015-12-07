@@ -1,9 +1,3 @@
-/*
- * neighborList.h
- *
- *  Created on: Jan 22, 2015
- *      Author: uwe
- */
 
 #ifndef NEIGHBORLIST_H_
 #define NEIGHBORLIST_H_

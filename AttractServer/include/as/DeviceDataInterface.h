@@ -1,9 +1,3 @@
-/*
- * DeviceDataInterface.h
- *
- *  Created on: Jan 18, 2015
- *      Author: uwe
- */
 
 #ifndef DEVICEDATAINTERFACE_H_
 #define DEVICEDATAINTERFACE_H_

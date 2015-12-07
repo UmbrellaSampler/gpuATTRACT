@@ -1,9 +1,3 @@
-/*
- * ClientData.h
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 
 #ifndef CLIENTDATA_H_
 #define CLIENTDATA_H_

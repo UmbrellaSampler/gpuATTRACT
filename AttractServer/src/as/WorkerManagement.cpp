@@ -1,9 +1,3 @@
-/*
- * WorkerManagement.cpp
- *
- *  Created on: Feb 5, 2015
- *      Author: uwe
- */
 
 #include "as/WorkerManagement.h"
 #include "asUtils/Logger.h"

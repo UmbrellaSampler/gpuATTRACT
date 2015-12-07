@@ -1,9 +1,3 @@
-/*
- * core_types.h
- *
- *  Created on: Jan 12, 2015
- *      Author: uwe
- */
 
 #ifndef CORE_TYPES_H_
 #define CORE_TYPES_H_

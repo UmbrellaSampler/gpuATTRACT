@@ -1,9 +1,3 @@
-/*
- * DeviceDataFactory.h
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 
 #ifndef DEVICEDATAFACTORY_H_
 #define DEVICEDATAFACTORY_H_

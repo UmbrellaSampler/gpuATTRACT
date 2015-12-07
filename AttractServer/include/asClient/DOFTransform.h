@@ -1,9 +1,3 @@
-/*
- * DOFTransform.h
- *
- *  Created on: Sep 14, 2015
- *      Author: uwe
- */
 
 #ifndef DOFTRANSFORM_H_
 #define DOFTRANSFORM_H_

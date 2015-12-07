@@ -1,9 +1,3 @@
-/*
- * WorkerManagement.h
- *
- *  Created on: Jan 20, 2015
- *      Author: uwe
- */
 
 #ifndef WORKERMANAGEMENT_H_
 #define WORKERMANAGEMENT_H_

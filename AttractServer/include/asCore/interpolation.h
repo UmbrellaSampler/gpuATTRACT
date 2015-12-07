@@ -1,9 +1,3 @@
-/*
- * interpolation.h
- *
- *  Created on: Jan 22, 2015
- *      Author: uwe
- */
 
 #ifndef INTERPOLATION_H_
 #define INTERPOLATION_H_

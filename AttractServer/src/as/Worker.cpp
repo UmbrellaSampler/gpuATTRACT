@@ -1,9 +1,3 @@
-/*
- * Worker.cpp
- *
- *  Created on: Feb 3, 2015
- *      Author: uwe
- */
 
 #include "as/Worker.h"
 #include "as/ServerManagement.h"

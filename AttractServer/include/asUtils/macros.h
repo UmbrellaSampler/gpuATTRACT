@@ -1,9 +1,3 @@
-/*
- * utils.h
- *
- *  Created on: May 27, 2014
- *      Author: uwe
- */
 
 #ifndef UTILS_H_
 #define UTILS_H_

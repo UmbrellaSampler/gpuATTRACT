@@ -1,9 +1,3 @@
-/*
- * params.h
- *
- *  Created on: Mar 24, 2015
- *      Author: uwe
- */
 
 #ifndef PARAMS_H_
 #define PARAMS_H_

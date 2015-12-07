@@ -1,9 +1,3 @@
-/*
- * GridOccupancy.h
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 
 #ifndef OCCUPANCYLAYOUT_H_
 #define OCCUPANCYLAYOUT_H_

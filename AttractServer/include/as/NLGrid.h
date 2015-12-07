@@ -1,9 +1,3 @@
-/*
- * NLGrid.h
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 
 #ifndef NLGRID_H_
 #define NLGRID_H_

@@ -1,9 +1,3 @@
-/*
- * ParamTable.h
- *
- *  Created on: Jan 27, 2015
- *      Author: uwe
- */
 
 #ifndef PARAMTABLE_H_
 #define PARAMTABLE_H_

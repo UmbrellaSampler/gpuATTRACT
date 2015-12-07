@@ -1,9 +1,3 @@
-/*
- * interpolation.cu
- *
- *  Created on: Jan 22, 2015
- *      Author: uwe
- */
 
 
 #include <stdio.h>

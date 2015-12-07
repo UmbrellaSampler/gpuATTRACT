@@ -1,9 +1,3 @@
-/*
- * config.h
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 
 #ifndef CONFIG_H_
 #define CONFIG_H_

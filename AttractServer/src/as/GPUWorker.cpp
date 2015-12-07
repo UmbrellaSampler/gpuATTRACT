@@ -1,9 +1,3 @@
-/*
- * GPUWorker.cpp
- *
- *  Created on: Jan 21, 2015
- *      Author: uwe
- */
 
 
 #include "cuda_runtime.h"

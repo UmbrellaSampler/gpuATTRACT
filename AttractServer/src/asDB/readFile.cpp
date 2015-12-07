@@ -1,9 +1,3 @@
-/*
- * read_protein.cpp
- *
- *  Created on: Aug 11, 2015
- *      Author: uwe
- */
 
 #include "asDB/readFile.h"
 #include "grid_orig.h"

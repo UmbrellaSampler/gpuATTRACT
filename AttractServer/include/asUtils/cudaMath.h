@@ -1,9 +1,3 @@
-/*
- * cudaMath.h
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 
 #ifndef CUDAMATH_H_
 #define CUDAMATH_H_

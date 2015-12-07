@@ -1,9 +1,3 @@
-/*
- * DataManagement.cu
- *
- *  Created on: Jan 13, 2015
- *      Author: uwe
- */
 #include "as/DeviceDataInterface.h"
 #include "asUtils/macros.h"
 #include "config.h"

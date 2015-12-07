@@ -1,9 +1,3 @@
-/*
- * Thread.h
- *
- *  Created on: Jan 20, 2015
- *      Author: uwe
- */
 
 #ifndef THREAD_H_
 #define THREAD_H_

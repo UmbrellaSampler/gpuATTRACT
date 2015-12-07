@@ -1,9 +1,3 @@
-/*
- * Request.h
- *
- *  Created on: Sep 1, 2015
- *      Author: uwe
- */
 
 #ifndef REQUEST_H_
 #define REQUEST_H_

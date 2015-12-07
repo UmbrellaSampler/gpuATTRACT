@@ -1,9 +1,3 @@
-/*
- * ServerManagement.h
- *
- *  Created on: Jan 20, 2015
- *      Author: uwe
- */
 
 #ifndef SERVERMANAGEMENT_H_
 #define SERVERMANAGEMENT_H_

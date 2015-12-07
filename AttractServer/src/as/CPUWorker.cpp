@@ -1,9 +1,3 @@
-/*
- * CPUWorker.cpp
- *
- *  Created on: Feb 5, 2015
- *      Author: uwe
- */
 
 #include "cuda_runtime.h"
 #include <nvToolsExt.h>
