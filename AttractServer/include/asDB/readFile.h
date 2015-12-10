@@ -99,6 +99,8 @@ void readParamTableFromFile(as::AttrParamTable* table, std::string filename);
  */
 void readDOFFromFile(std::string filename, std::vector<std::vector<as::DOF>>& DOF_molecules);
 
+void readEnsembleDOFFromFile(std::string filename, std::vector<std::vector<as::DOF>>& DOF_molecules);
+
 /*
  ** @brief: reads the header of a (ATTRACT-) .dat containing DOFs.
  */

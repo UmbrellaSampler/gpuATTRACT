@@ -1,6 +1,6 @@
 
 
-#include <stdio.h>
+//#include <stdio.h>
 
 #include "asCore/interpolation.h"
 #include "asUtils/cudaMath.h"

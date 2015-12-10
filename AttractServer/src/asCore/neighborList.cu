@@ -130,7 +130,9 @@ inline __host__ __device__ float calcSwi(const float &dr2, const float &swiOn,
 // Receptor Gradients not (yet) supported
 template<bool NLOnly>
 __global__ void asCore::d_NLPotForce(const unsigned gridId,
-		const unsigned RecId, const unsigned LigId,
+		const unsigned RecIdFirst,
+		const as::DOF* dofs,
+		const unsigned LigIdFirst,
 		const unsigned numDOFs,
 		const float* LigPosX,
 		const float* LigPosY,
@@ -142,11 +144,11 @@ __global__ void asCore::d_NLPotForce(const unsigned gridId,
 		float* outLigand_eVdW)
 {
 	const unsigned i = blockDim.x * blockIdx.x + threadIdx.x;
-	const unsigned LigNumEl = c_Proteins[LigId].numAtoms;
-	if (i < LigNumEl*numDOFs) {
-		const unsigned LigAttrIdx = i % LigNumEl;
+	const unsigned numAtomsLig = c_Proteins[LigIdFirst].numAtoms;
+	if (i < numAtomsLig*numDOFs) {
+		const unsigned LigAttrIdx = i % numAtomsLig;
 
-		const unsigned atomTypeLig = c_Proteins[LigId].type[LigAttrIdx];
+		const unsigned atomTypeLig = c_Proteins[LigIdFirst].type[LigAttrIdx];
 
 		if (atomTypeLig != 0) {
 
@@ -178,6 +180,10 @@ __global__ void asCore::d_NLPotForce(const unsigned gridId,
 //				if (i == 814)
 //					printf("ATOM %u List numEl startIdx %u %u \n", i, nDesc.x, nDesc.y);
 
+				unsigned DOFidx = i / numAtomsLig;
+				as::DOF dof = dofs[DOFidx];
+				const unsigned RecId = dof.recId;
+
 				for (unsigned j = 0; j < nDesc.x; ++j) {
 					const unsigned nIdx = c_Grids[gridId].NL.neighborList[nDesc.y + j];
 
@@ -207,7 +213,7 @@ __global__ void asCore::d_NLPotForce(const unsigned gridId,
 					float eVdWAcc = 0;
 					float eElAcc = 0;
 
-					const size_t atomTypeRec = c_Proteins[RecId].type[nIdx];
+					const size_t atomTypeRec = c_Proteins[RecIdFirst].type[nIdx];
 
 					// Calculate Switching Function -> not supported
 //					float swi = 1;
@@ -231,8 +237,8 @@ __global__ void asCore::d_NLPotForce(const unsigned gridId,
 					fAcc.z  += fVdW.z;
 					eVdWAcc += eVdW;
 
-					const float chargeLig = c_Proteins[LigId].charge[LigAttrIdx];
-					const float chargeRec = c_Proteins[RecId].charge[nIdx];
+					const float chargeLig = c_Proteins[LigIdFirst].charge[LigAttrIdx];
+					const float chargeRec = c_Proteins[RecIdFirst].charge[nIdx];
 					const float chargeLigRec = chargeLig * chargeRec * c_SimParam.ffelec;
 
 					const bool calc_elec = abs(chargeLigRec) > 0.001; // evaluate electric potential
@@ -503,7 +509,9 @@ void asCore::h_NLPotForce(const as::NLGrid *grid,
 
 template __global__ void
 asCore::d_NLPotForce<true>(const unsigned gridId,
-		const unsigned RecId, const unsigned LigId,
+		const unsigned RecIdFirst,
+		const as::DOF* dofs,
+		const unsigned LigId,
 		const unsigned numDOFs,
 		const float* LigPosX,
 		const float* LigPosY,
@@ -516,7 +524,9 @@ asCore::d_NLPotForce<true>(const unsigned gridId,
 
 template __global__ void
 asCore::d_NLPotForce<false>(const unsigned gridId,
-		const unsigned RecId, const unsigned LigId,
+		const unsigned RecIdFirst,
+		const as::DOF* dofs,
+		const unsigned LigId,
 		const unsigned numDOFs,
 		const float* LigPosX,
 		const float* LigPosY,

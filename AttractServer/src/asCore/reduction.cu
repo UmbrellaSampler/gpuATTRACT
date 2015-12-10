@@ -407,7 +407,7 @@ reduce6(T *d_fx, T *d_fy, T *d_fz, T *d_eVdW, T *d_eEl, T* d_x, T* d_y, T* d_z, 
 
 template <class T, unsigned int blockSize, bool nIsPow2>
 __global__ void
-reduce1Grid(unsigned int protId,
+reduce1Grid(unsigned int numAtomsLig, as::DOF* dofs,
 		T *d_fx, T *d_fy, T *d_fz, T *d_eVdW, T *d_eEl, T *g_odata)
 {
     T *sdata = SharedMemory<T>();
@@ -417,7 +417,9 @@ reduce1Grid(unsigned int protId,
     unsigned int tid = threadIdx.x;
 
     unsigned int i = threadIdx.x; // half the number of blocks
-    unsigned int base = blockIdx.x*c_Proteins[protId].numAtoms;
+    unsigned int base = blockIdx.x*numAtomsLig;
+
+    unsigned protId = dofs[blockIdx.x].ligId;
 
     T sum_fx = 0;
     T sum_fy = 0;
@@ -426,7 +428,7 @@ reduce1Grid(unsigned int protId,
     T sum_eEl = 0;
     T sum_torque[9] = {0};
 
-    while (i < c_Proteins[protId].numAtoms)
+    while (i < numAtomsLig)
     {
 		T fx, fy, fz, x, y, z;
 		fx = d_fx[base + i];
@@ -452,7 +454,7 @@ reduce1Grid(unsigned int protId,
 
 
         // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
-        if (nIsPow2 || i + blockSize < c_Proteins[protId].numAtoms) {
+        if (nIsPow2 || i + blockSize < numAtomsLig) {
 
 			fx = d_fx[base + i + blockSize];
 			fy = d_fy[base + i + blockSize];
@@ -894,7 +896,8 @@ reduce1Grid(unsigned int protId,
 
 template <class T>
 __host__ void asCore::reduceAll(const unsigned& threads, const unsigned& blocks,
-		const unsigned& protId, const unsigned& size,
+		const unsigned& numAtomsLig,
+		as::DOF* dofs,
 		T *d_fx, T *d_fy, T *d_fz, T *d_eVdW, T *d_eEl,
 		T *d_odata,
 		const cudaStream_t& stream)
@@ -908,52 +911,52 @@ __host__ void asCore::reduceAll(const unsigned& threads, const unsigned& blocks,
 
 	// choose which of the optimized versions of reduction to launch
 
-	if (asUtils::isPow2(size))
+	if (asUtils::isPow2(numAtomsLig))
 	{
 		switch (threads)
 		{
 			case 1024:
-				reduce1Grid<T, 1024,true><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T, 1024,true><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case 512:
-				reduce1Grid<T, 512, true><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T, 512, true><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case 256:
-				reduce1Grid<T, 256, true><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T, 256, true><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case 128:
-				reduce1Grid<T, 128, true><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T, 128, true><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case 64:
-				reduce1Grid<T,  64, true><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,  64, true><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case 32:
-				reduce1Grid<T,  32, true><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,  32, true><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case 16:
-				reduce1Grid<T,  16, true><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,  16, true><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case  8:
-				reduce1Grid<T,   8, true><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,   8, true><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case  4:
-				reduce1Grid<T,   4, true><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,   4, true><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case  2:
-				reduce1Grid<T,   2, true><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,   2, true><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case  1:
-				reduce1Grid<T,   1, true><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,   1, true><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 		}
 	}
@@ -962,47 +965,47 @@ __host__ void asCore::reduceAll(const unsigned& threads, const unsigned& blocks,
 		switch (threads)
 		{
 			case 1024:
-				reduce1Grid<T, 1024,false><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T, 1024,false><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case 512:
-				reduce1Grid<T, 512, false><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T, 512, false><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case 256:
-				reduce1Grid<T, 256, false><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T, 256, false><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case 128:
-				reduce1Grid<T, 128, false><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T, 128, false><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case 64:
-				reduce1Grid<T,  64, false><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,  64, false><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case 32:
-				reduce1Grid<T,  32, false><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,  32, false><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case 16:
-				reduce1Grid<T,  16, false><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,  16, false><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case  8:
-				reduce1Grid<T,   8, false><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,   8, false><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case  4:
-				reduce1Grid<T,   4, false><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,   4, false><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case  2:
-				reduce1Grid<T,   2, false><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,   2, false><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 
 			case  1:
-				reduce1Grid<T,   1, false><<< dimGrid, dimBlock, smemSize, stream >>>(protId, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
+				reduce1Grid<T,   1, false><<< dimGrid, dimBlock, smemSize, stream >>>(numAtomsLig, dofs, d_fx, d_fy, d_fz, d_eVdW, d_eEl, d_odata);
 				break;
 		}
 	}
@@ -1075,7 +1078,8 @@ __host__ void asCore::reduceAll(const unsigned& threads, const unsigned& blocks,
 
 template __host__ void
 asCore::reduceAll<float>(const unsigned& threads, const unsigned& blocks,
-		const unsigned& protId, const unsigned&,
+		const unsigned& numAtomsLig,
+		as::DOF* dofs,
 		float *d_fx, float *d_fy, float *d_fz, float *d_eVdW, float *d_eEl,
 		float *d_odata,
 		const cudaStream_t& stream);

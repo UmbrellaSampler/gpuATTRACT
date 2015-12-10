@@ -133,11 +133,13 @@ public:
 	// Receptor Gradients not (yet) supported
 	template<bool NLOnly>
 	void d_NLPotForce (const unsigned& gridId,
-		const unsigned& recId, const unsigned& ligId,
-		const unsigned& numDOFs,
-		const as::Comp3_HD<float, as::DEVONLY>* LigPosTr,
-		as::Comp5_HD<float, as::DEVONLY>* outLigPotForce,
-		const cudaStream_t &stream = 0);
+			const unsigned& recIdFirst,
+			const as::Comp1_HD<as::DOF, as::DEVONLY>* dofs,
+			const unsigned& ligIdFirst,
+			const unsigned& numDOFs,
+			const as::Comp3_HD<float, as::DEVONLY>* LigPosTr,
+			as::Comp5_HD<float, as::DEVONLY>* outLigPotForce,
+			const cudaStream_t &stream = 0);
 
 
 	/*

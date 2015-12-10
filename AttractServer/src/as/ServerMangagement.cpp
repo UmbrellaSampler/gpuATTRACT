@@ -207,12 +207,10 @@ void as::ServerManagement::removeCPUWorker() {
 }
 
 int as::ServerManagement::submitRequest(DOF* dofs, const unsigned& numDOFs,
-			const int& gridId,
-			const int& recId, const int& ligId,
-			const Request::useMode_t& mode)
+			const int& gridId, const Request::useMode_t& mode)
 {
 	return Disp.createRequest(dofs, numDOFs,
-			gridId, recId, ligId, mode);
+				gridId, mode);
 }
 
 as::Dispatcher::pullErr_t as::ServerManagement::pullRequest(int RequestId, EnGrad* buffer)

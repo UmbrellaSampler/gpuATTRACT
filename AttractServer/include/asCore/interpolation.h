@@ -41,7 +41,7 @@ enum IntrplType {
 
 template<IntrplType T>
 __global__ void d_InnerPotForce(
-		const unsigned gridId, const unsigned protId,
+		const unsigned gridId, const unsigned protId, // the first id of the ligand ensemble because they share type and charge info
 		const unsigned numDOFs,
 		const float* data_in_x, const float* data_in_y, const float* data_in_z,
 		float* data_out_x, float* data_out_y, float* data_out_z,
@@ -49,7 +49,7 @@ __global__ void d_InnerPotForce(
 
 template<IntrplType T>
 __global__ void d_OuterPotForce(
-		const unsigned gridId, const unsigned protId,
+		const unsigned gridId, const unsigned protId, // the first id of the ligand ensemble because they share type and charge info
 		const unsigned numDOFs,
 		const float* data_in_x, const float* data_in_y, const float* data_in_z,
 		float* data_out_x, float* data_out_y, float* data_out_z,

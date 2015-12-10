@@ -50,7 +50,9 @@ void asCore::Interpolator::d_PotForce(const unsigned& gridId,
 
 template<bool NLOnly>
 void asCore::Interpolator::d_NLPotForce(const unsigned& gridId,
-		const unsigned& recId, const unsigned& ligId,
+		const unsigned& recIdFirst,
+		const as::Comp1_HD<as::DOF, as::DEVONLY>* dofs,
+		const unsigned& ligIdFirst,
 		const unsigned& numDOFs,
 		const Comp3_HD<float, DEVONLY>* LigPosTr,
 		Comp5_HD<float, DEVONLY>* outLigPotForce,
@@ -58,7 +60,9 @@ void asCore::Interpolator::d_NLPotForce(const unsigned& gridId,
 {
 	cudaVerifyKernel((
 		asCore::d_NLPotForce<NLOnly><<<_gridSize, _blockSize, 0, stream>>>(gridId,
-				recId, ligId, numDOFs,
+				recIdFirst,
+				dofs->d_data(),
+				ligIdFirst, numDOFs,
 				LigPosTr->d_x(),
 				LigPosTr->d_y(),
 				LigPosTr->d_z(),
@@ -89,7 +93,9 @@ void asCore::Interpolator::d_PotForce<asCore::manual>(const unsigned& gridId,
 
 template
 void asCore::Interpolator::d_NLPotForce<true>(const unsigned& gridId,
-		const unsigned& recId, const unsigned& ligId,
+		const unsigned& numAtomsRec,
+		const as::Comp1_HD<as::DOF, as::DEVONLY>* dofs,
+		const unsigned& ligIdFirst,
 		const unsigned& numDOFs,
 		const Comp3_HD<float, DEVONLY>* LigPosTr,
 		Comp5_HD<float, DEVONLY>* outLigPotForce,
@@ -97,7 +103,9 @@ void asCore::Interpolator::d_NLPotForce<true>(const unsigned& gridId,
 
 template
 void asCore::Interpolator::d_NLPotForce<false>(const unsigned& gridId,
-		const unsigned& recId, const unsigned& ligId,
+		const unsigned& recIdFirst,
+		const as::Comp1_HD<as::DOF, as::DEVONLY>* dofs,
+		const unsigned& ligIdFirst,
 		const unsigned& numDOFs,
 		const Comp3_HD<float, DEVONLY>* LigPosTr,
 		Comp5_HD<float, DEVONLY>* outLigPotForce,

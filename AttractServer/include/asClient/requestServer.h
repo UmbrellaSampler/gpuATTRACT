@@ -35,7 +35,7 @@ namespace asClient {
  */
 
 inline int server_submit(as::ServerManagement& mngt, as::DOF* dofs, const unsigned& numDofs,
-			const int& gridId, const int& recId, const int& ligId,
+			const int& gridId,
 			const as::Request::useMode_t& mode)
 {
 	using namespace std;
@@ -44,7 +44,7 @@ inline int server_submit(as::ServerManagement& mngt, as::DOF* dofs, const unsign
 	unsigned count = 0;
 	int reqId = -1;
 	while (reqId == -1 && count < 10000) {
-		reqId = mngt.submitRequest(dofs, numDofs, gridId, recId, ligId, mode);
+		reqId = mngt.submitRequest(dofs, numDofs, gridId, mode);
 		if (reqId != -1) {
 			return reqId;
 		}

@@ -77,8 +77,7 @@ public:
 	 ** -1 is returned if request cannot be accepted!
 	 */
 	int createRequest(DOF* dofs, const unsigned& numDOFs,
-			const int& gridId, const int& recId, const int& ligId,
-			const Request::useMode_t& mode);
+			const int& gridId, const Request::useMode_t& mode);
 
 	pullErr_t pullRequest(const int& reqId, EnGrad* const buffer);
 

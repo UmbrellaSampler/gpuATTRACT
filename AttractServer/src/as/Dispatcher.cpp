@@ -90,8 +90,12 @@ void as::Dispatcher::run() {
 inline void as::Dispatcher::GPUDist(Request* const req)
 {
 	const unsigned& globGridId = req->globGridId();
-	const unsigned& globRecId = req->globRecId();
-	const unsigned& globLigId = req->globLigId();
+	/* This is a work around: we need that getCommonDevices returns all possible ids.
+	 * For that we have to setup the server properly: send all proteins and grids to all devices*/
+	const unsigned globRecId = 0;
+	const unsigned globLigId = 1;
+
+
 	const std::set<unsigned>& commonDevices = getCommonDeviceIDs_cref(globGridId, globRecId, globLigId);
 
 	const unsigned numDevices = commonDevices.size();
@@ -168,7 +172,7 @@ inline void as::Dispatcher::CPUDist(Request* const req)
 	/* reset the iterator to call req->nextItem. Accordingly, it starts to return the first item*/
 	req->resetIterator();
 	if (numWorkers == 1) {
-		/* Push items directly to WorkQueue of the respective GPU worker */
+		/* Push items directly to WorkQueue of the respective CPU worker */
 		for (unsigned i = 0; i < req->size(); ++i) {
 			WorkerItem* item = req->nextItem();
 			pushItemToCPUWorker(item, 0);
@@ -227,13 +231,10 @@ inline void as::Dispatcher::CPUDist(Request* const req)
 }
 
 int as::Dispatcher::createRequest(DOF* dofs, const unsigned& numDOFs,
-		const int& gridId, const int& recId, const int& ligId,
-		const Request::useMode_t& mode)
+		const int& gridId, const Request::useMode_t& mode)
 {
 	/* check validity only in Debug mode */
 	assert(gridValid(gridId));
-	assert(protValid(recId));
-	assert(protValid(ligId));
 
 	int numItems = (numDOFs + _itemSize - 1) / _itemSize;
 	WorkerItem* items[numItems];
@@ -256,16 +257,12 @@ int as::Dispatcher::createRequest(DOF* dofs, const unsigned& numDOFs,
 		std::memcpy(item->DOFBuffer(), dofs + i*_itemSize, _itemSize*sizeof(DOF));
 		item->setNumDOFs(_itemSize);
 		item->setGlobGridId(gridId);
-		item->setGlobRecId(recId);
-		item->setGlobLigId(ligId);
 	}
 	int numLast = numDOFs - (numItems-1) * _itemSize;
 	WorkerItem* item = items[numItems-1];
 	std::memcpy(item->DOFBuffer(), dofs + (numItems-1)*_itemSize, numLast*sizeof(DOF));
 	item->setNumDOFs(numLast);
 	item->setGlobGridId(gridId);
-	item->setGlobRecId(recId);
-	item->setGlobLigId(ligId);
 
 	/* assigned Id and push Items to request */
 	int id = _id++; // atomically

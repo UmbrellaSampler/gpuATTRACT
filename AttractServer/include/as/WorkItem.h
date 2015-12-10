@@ -32,22 +32,17 @@ namespace as {
  ** (either CPU or GPU).
  ** Provides buffers and relevant information for a worker.
  ** Elements of the DOF input buffer result in DOF gradients and energy
- ** components, which are stored in the EnGrad ouput buffer accordingly.
+ ** components, which are stored in the EnGrad output buffer accordingly.
  */
 class WorkerItem {
 public:
 	/* Constructor */
-	WorkerItem(DOF* dofs, EnGrad* enGrads, unsigned numDOFs, unsigned globGridId, unsigned globRecId, unsigned globLigId,
-			unsigned devLocGridId, unsigned devLocRecId, unsigned devLocLigId) :
+	WorkerItem(DOF* dofs, EnGrad* enGrads, unsigned numDOFs, unsigned globGridId,
+			unsigned devLocGridId) :
 		_DOFs(dofs),
 		_EnGrads(enGrads),
 		_numDOFs(numDOFs),
-		_globGridId(globGridId),
-		_globRecId(globRecId),
-		_globLigId(globLigId),
 		_devLocGridId(devLocGridId),
-		_devLocRecId(devLocRecId),
-		_devLocLigId(devLocLigId),
 		_ready(false){}
 
 	WorkerItem(DOF* dofs, EnGrad* enGrads) :
@@ -55,11 +50,7 @@ public:
 		_EnGrads(enGrads),
 		_numDOFs(0),
 		_globGridId(9999),
-		_globRecId(9999),
-		_globLigId(9999),
 		_devLocGridId(9999),
-		_devLocRecId(9999),
-		_devLocLigId(9999),
 		_ready(false){}
 
 	WorkerItem() :
@@ -67,11 +58,7 @@ public:
 		_EnGrads(NULL),
 		_numDOFs(0),
 		_globGridId(9999),
-		_globRecId(9999),
-		_globLigId(9999),
 		_devLocGridId(9999),
-		_devLocRecId(9999),
-		_devLocLigId(9999),
 		_ready(false){}
 
 	/* Destructor */
@@ -95,26 +82,9 @@ public:
 		return _globGridId;
 	}
 
-	inline unsigned globRecId() const {
-		return _globRecId;
-	}
-
-	inline unsigned globLigId() const {
-		return _globLigId;
-	}
-
-	inline unsigned devLocRecId() const {
-		return _devLocRecId;
-	}
-
-	inline unsigned devLocLigId() const {
-		return _devLocLigId;
-	}
-
 	inline unsigned devLocGridId() const {
 		return _devLocGridId;
 	}
-
 
 	inline DOF* DOFBuffer() const {
 		return _DOFs;
@@ -144,24 +114,8 @@ public:
 		_globGridId = id;
 	}
 
-	inline void setGlobRecId(const unsigned& id) {
-		_globRecId = id;
-	}
-
-	inline void setGlobLigId(const unsigned& id) {
-		_globLigId = id;
-	}
-
 	inline void setDevLocGridId(const unsigned& id) {
 		_devLocGridId = id;
-	}
-
-	inline void setDevLocRecId(const unsigned& id) {
-		_devLocRecId = id;
-	}
-
-	inline void setDevLocLigId(const unsigned& id) {
-		_devLocLigId = id;
 	}
 
 	inline void setDOFBuffer(DOF* const buf) {
@@ -204,14 +158,10 @@ private:
 	unsigned _numDOFs;		/** Number of elements in buffers */
 
 	unsigned _globGridId;	/** Global grid device ID */
-	unsigned _globRecId;	/** Global receptor protein device ID */
-	unsigned _globLigId;	/** Global ligand protein device ID */
-
 
 	/* For device calcualtions */
 	unsigned _devLocGridId;	/** Device local grid ID */
-	unsigned _devLocRecId;	/** Device local receptor protein device ID */
-	unsigned _devLocLigId;	/** Device local ligand protein ID */
+
 
 	std::atomic<bool> _ready;
 };

@@ -37,22 +37,22 @@ namespace asCore {
 /*
  ** @brief: Used to transform the ligand.
  */
-__global__ void d_DOF2Pos(const unsigned protId,
+__global__ void d_DOF2Pos(const unsigned numAtomsLig,
 		const unsigned numDOFs, const as::DOF* dofs,
 		float* xTr, float* yTr, float* zTr);
 
 
-__global__ void d_DOF2Pos_modes(const unsigned protId,
-		const unsigned numDOFs, const as::DOF* dofs,
-		float* xTr, float* yTr, float* zTr,
-		float* xDef, float* yDef, float* zDef);
+//__global__ void d_DOF2Pos_modes(const unsigned protId,
+//		const unsigned numDOFs, const as::DOF* dofs,
+//		float* xTr, float* yTr, float* zTr,
+//		float* xDef, float* yDef, float* zDef);
 
-/*
- ** @brief: Used to transform the receptor.
- */
-__global__ void d_DOF2Deform(const unsigned protId,
-	const as::DOF* dofs, const unsigned numDOFs,
-	float* xDef, float* yDef, float* zDef);
+///*
+// ** @brief: Used to transform the receptor.
+// */
+//__global__ void d_DOF2Deform(const unsigned protId,
+//	const as::DOF* dofs, const unsigned numDOFs,
+//	float* xDef, float* yDef, float* zDef);
 
 
 inline void  euler2rotmat(const float& phi, const float& ssi, const float& rot, asUtils::RotMatf& rotmat) {

@@ -247,32 +247,6 @@ std::ostream& operator <<(std::ostream& outStream,
 }
 
 template <unsigned T>
-struct ServerDOF_t {
-	int id; 		/** memory location for in order storage in result Buffer. */
-	int locGridId;
-	int locProtId;
-	DOF_t<T> dof;
-};
-
-template <unsigned T>
-std::ostream& operator <<(std::ostream& outStream,
-		const struct ServerDOF_t<T> &dof)
-{
-	using namespace std;
-	int precisionSetting = outStream.precision( );
-	ios::fmtflags flagSettings = outStream.flags();
-	outStream.precision(4);
-
-	outStream << dof.id << " " << dof.locGridId << " " << dof.locProtId << endl;
-	outStream << dof.dof << endl;
-
-	outStream.precision(precisionSetting);
-	outStream.flags(flagSettings);
-
-	return outStream;
-}
-
-template <unsigned T>
 struct ServerResult_t {
 	float E_VdW;
 	float E_El;
@@ -316,12 +290,23 @@ std::ostream& operator <<(std::ostream& outStream,
 	return outStream;
 }
 
-typedef struct DOF_t<MAXMODES> DOF;
-typedef struct ServerResult_t<MAXMODES> EnGrad;
+struct EnsDOF_t {
+	float3 pos;
+	float3 ang;
+	int recId;
+	int ligId;
 
-/* ToDo: check if the following two are used any more */
-typedef struct ServerDOF_t<MAXMODES> ServerDOF;
-typedef struct ServerResult_t<MAXMODES> ServerResult;
+	EnsDOF_t() = default;
+	EnsDOF_t(float value) {
+		pos = make_float3(value, value, value);
+		ang = make_float3(value, value, value);
+		recId = ligId = static_cast<int>(value);
+	}
+};
+
+using DOF = EnsDOF_t;
+using EnGrad = ServerResult_t<MAXMODES>;
+
 
 struct deviceSimParam {
 	dielec_t dielec;				/** type of dielectric constant */

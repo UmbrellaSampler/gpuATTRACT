@@ -118,8 +118,7 @@ public:
 	void removeCPUWorker();
 
 	int submitRequest(DOF* dofs, const unsigned& numDOFs,
-			const int& gridId, const int& recId, const int& ligId,
-			const Request::useMode_t& mode);
+			const int& gridId, const Request::useMode_t& mode);
 
 	Dispatcher::pullErr_t pullRequest(int RequestId, EnGrad* buffer);
 

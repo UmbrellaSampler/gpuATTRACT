@@ -57,6 +57,7 @@ $ATTRACTDIR/make-grid-omp receptorr.pdb $ATTRACTDIR/../attract.par 5.0 7.0 recep
 
 fi
 
+if [ 1 -eq 0 ]; then
 echo '**************************************************************'
 echo 'Docking'
 echo '**************************************************************'
@@ -66,7 +67,7 @@ echo '1st minimization'
 echo '**************************************************************'
 start=systsearch.dat
 
-if [ 1 -eq 1 ]; then
+
 #(time $ATTRACTDIR/attract $start $params $gridparams --vmax 1000 > out_$name.dat) 2> $name.docking.1t.time
 
 
@@ -84,7 +85,7 @@ time (python $ATTRACTDIR/../protocols/attract.py out_$name.dat $scoreparams --rc
 
 fi
 
-if [ 1 -eq 1 ]; then     
+if [ 1 -eq 0 ]; then     
 echo '**************************************************************'
 echo 'Merge the scores with the structures'
 echo '**************************************************************'

@@ -75,26 +75,26 @@ public:
 		asCore::h_DOF2Pos(prot->xPos(),prot->yPos(), prot->zPos(),
 				dof.pos.x, dof.pos.y, dof.pos.z,
 				prot->xModes(),prot->yModes(), prot->zModes(),
-				rotmat, dof.modes,
+				rotmat, 0,
 				prot->numAtoms(), prot->numModes(),
 				posTr->h_x() + shift, posTr->h_y() + shift, posTr->h_z() + shift,
 				NULL, NULL, NULL);
 	}
 
-	static void h_DOF2Pos_modes(const as::Protein* prot,
-			const as::DOF& dof, const asUtils::RotMatf& rotmat,
-			as::Comp3_HD<float, as::HOSTONLY>* posTr,
-			as::Comp3_HD<float, as::HOSTONLY>* posDef,
-			const unsigned& shift = 0)
-	{
-		asCore::h_DOF2Pos(prot->xPos(),prot->yPos(), prot->zPos(),
-				dof.pos.x, dof.pos.y, dof.pos.z,
-				prot->xModes(),prot->yModes(), prot->zModes(),
-				rotmat, dof.modes,
-				prot->numAtoms(), prot->numModes(),
-				posTr->h_x() + shift, posTr->h_y() + shift, posTr->h_z() + shift,
-				posDef->h_x() + shift, posDef->h_y() + shift, posDef->h_z() + shift);
-	}
+//	static void h_DOF2Pos_modes(const as::Protein* prot,
+//			const as::DOF& dof, const asUtils::RotMatf& rotmat,
+//			as::Comp3_HD<float, as::HOSTONLY>* posTr,
+//			as::Comp3_HD<float, as::HOSTONLY>* posDef,
+//			const unsigned& shift = 0)
+//	{
+//		asCore::h_DOF2Pos(prot->xPos(),prot->yPos(), prot->zPos(),
+//				dof.pos.x, dof.pos.y, dof.pos.z,
+//				prot->xModes(),prot->yModes(), prot->zModes(),
+//				rotmat, 0,
+//				prot->numAtoms(), prot->numModes(),
+//				posTr->h_x() + shift, posTr->h_y() + shift, posTr->h_z() + shift,
+//				posDef->h_x() + shift, posDef->h_y() + shift, posDef->h_z() + shift);
+//	}
 
 	/*
 	 ** @brief: Used to transform receptor coordinates.
@@ -106,7 +106,7 @@ public:
 	{
 		asCore::h_DOF2Deform(prot->xPos(),prot->yPos(), prot->zPos(),
 				prot->xModes(),prot->yModes(), prot->zModes(),
-				dof.modes,
+				0,
 				prot->numAtoms(), prot->numModes(),
 				posDef->h_x() + shift, posDef->h_x() + shift, posDef->h_x() + shift);
 
@@ -169,7 +169,7 @@ public:
 		}
 	}
 
-	void d_DOF2Pos(const unsigned& protId,
+	void d_DOF2Pos(const unsigned& numLigAtoms,
 			const unsigned &numDOFs, const as::Comp1_HD<as::DOF, as::DEVONLY>* dofs,
 			as::Comp3_HD<float, as::DEVONLY>* posTr,
 			const cudaStream_t &stream = 0);
@@ -180,16 +180,17 @@ public:
 			as::Comp3_HD<float, as::DEVONLY>* posDef,
 			const cudaStream_t &stream = 0);
 
+// not used any more --> should be removed
+//	void d_partForce2Grad(const unsigned& protId,
+//			const unsigned &numDOFs,
+//			const as::Comp5_HD<float, as::DEVONLY>* outPotForce,
+//			as::Comp1_HD<float, as::HOST_PINNED>* reduce_res,
+//			const cudaStream_t &stream = 0);
 
-	void d_partForce2Grad(const unsigned& protId,
-			const unsigned &numDOFs,
-			const as::Comp5_HD<float, as::DEVONLY>* outPotForce,
-			as::Comp1_HD<float, as::HOST_PINNED>* reduce_res,
-			const cudaStream_t &stream = 0);
-
-	void d_partForce2GradAll(const unsigned& protId,
+	void d_partForce2GradAll(
 			const unsigned &numDOFs,
 			const unsigned &sizeLigand,
+			const as::Comp1_HD<as::DOF, as::DEVONLY>* dofs,
 			const as::Comp5_HD<float, as::DEVONLY>* outPotForce,
 			as::Comp1_HD<float, as::HOST_PINNED>* reduce_res,
 			const cudaStream_t &stream = 0);

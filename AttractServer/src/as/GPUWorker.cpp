@@ -77,7 +77,7 @@ void as::GPUWorker::run () {
 		predicates[1][i] = false;
 	}
 	RingArray<WorkerItem*> stagesMngt(numStages);
-	RingArray<Protein*> LigMngt(numStages);
+	RingArray<unsigned> LigMngt(numStages);
 	unsigned pipeIdx[2] = {0,1};
 	int numItemsInPipe = 0;
 
@@ -171,14 +171,15 @@ void as::GPUWorker::run () {
 			assert(item->size() > 0);
 			/* get device local ids */
 			item->setDevLocGridId(deviceLocalGridID(item->globGridId()));
-			item->setDevLocLigId(deviceLocalProteinID(item->globLigId()));
-			item->setDevLocRecId(deviceLocalProteinID(item->globRecId()));
+			/* transform glob protein Ids of DOF into local ones
+			 * --> no assume all proteins are present on all devices
+			 */
 
 			++numItemsInPipe;
 			/* signal that stage 0 is to executed within the current iteration */
 			predicates[pipeIdx[0]][0] = true;
 			stagesMngt.push(item);
-			LigMngt.push(getProtein(item->globLigId()));
+			LigMngt.push(getProtein(item->DOFBuffer()[0].ligId)->numAtoms());
 		} else {
 			WorkerItem* item;
 //			nvtxRangePushA("GPUWorker Remove");
@@ -188,14 +189,15 @@ void as::GPUWorker::run () {
 				assert(item->size() > 0);
 				/* get device local ids */
 				item->setDevLocGridId(deviceLocalGridID(item->globGridId()));
-				item->setDevLocLigId(deviceLocalProteinID(item->globLigId()));
-				item->setDevLocRecId(deviceLocalProteinID(item->globRecId()));
+				/* transform glob protein Ids of DOF into local ones
+				 * --> no assume all proteins are present on all devices
+				 */
 
 				++numItemsInPipe;
 				/* signal that stage 0 is to executed within the current iteration */
 				predicates[pipeIdx[0]][0] = true;
 				stagesMngt.push(item);
-				LigMngt.push(getProtein(item->globLigId()));
+				LigMngt.push(getProtein(item->DOFBuffer()[0].ligId)->numAtoms());
 			} else {
 				stagesMngt.rotate();
 				LigMngt.rotate();
@@ -241,13 +243,14 @@ void as::GPUWorker::run () {
 			/* Device: Wait for completion of copyH2D of DOFs to complete */
 			cudaVerify(cudaStreamWaitEvent(streams[2], events[0], 0));
 
-			const unsigned numEl = it->size()*LigMngt.get(stageId)->numAtoms();
+			const unsigned numAtomsLig = LigMngt.get(stageId);
+			const unsigned numEl = it->size()*numAtomsLig;
 //			std::cout << "GPUWorker.cpp: " << "numEl " << numEl << " _atomBufferSize " << _atomBufferSize << std::endl;
 			assert(numEl <= _atomBufferSize);
 
 			/* Perform cuda kernel calls */
 			TF.calcAndSetGridSize(numEl);
-			TF.d_DOF2Pos(it->devLocLigId(),it->size(),d_dof[pipeIdx[1]], &d_trafoLig, streams[2]);
+			TF.d_DOF2Pos(numAtomsLig, it->size(),d_dof[pipeIdx[1]], &d_trafoLig, streams[2]);
 
 			//DEBUG
 //			if(count++ == 18494) {
@@ -261,14 +264,14 @@ void as::GPUWorker::run () {
 ////					return 0;
 //			}
 
-			/* Device: Signal event when transformation has completed */
-			cudaVerify(cudaEventRecord(events[2], streams[2]));
+//			/* Device: Signal event when transformation has completed */
+//			cudaVerify(cudaEventRecord(events[2], streams[2]));
 			/* Device: Wait for completion of reduction of the previous round */
 			cudaVerify(cudaStreamWaitEvent(streams[2], events[5+pipeIdx[1]], 0));
 
 			/* Perform cuda kernel calls */
 			IP.calcAndSetGridSize(numEl);
-			IP.d_PotForce<asCore::built_in>(it->devLocGridId(), it->devLocLigId(), it->size(), &d_trafoLig, d_potLig[pipeIdx[1]],streams[2]);
+			IP.d_PotForce<asCore::built_in>(it->devLocGridId(), it->DOFBuffer()[0].ligId, it->size(), &d_trafoLig, d_potLig[pipeIdx[1]],streams[2]);
 //			IP.d_PotForce<manual>(it->devLocGridId(), it->devLocLigId(), it->size(), &d_trafoLig, d_potLig[pipeIdx[1]],streams[2]);
 
 			//DEBUG
@@ -285,7 +288,7 @@ void as::GPUWorker::run () {
 ////					return 0;
 //			}
 
-			IP.d_NLPotForce<false>(it->devLocGridId(), it->devLocRecId(), it->devLocLigId(),it->size(),
+			IP.d_NLPotForce<false>(it->devLocGridId(), it->DOFBuffer()[0].recId, d_dof[pipeIdx[1]], it->DOFBuffer()[0].ligId, it->size(),
 					&d_trafoLig, d_potLig[pipeIdx[1]],streams[2]);
 
 			//DEBUG
@@ -319,7 +322,7 @@ void as::GPUWorker::run () {
 			const static unsigned stageId = 2;
 			const WorkerItem* it = stagesMngt.get(stageId);
 
-			const unsigned numAtoms = LigMngt.get(stageId)->numAtoms();
+			const unsigned numAtomsLig = LigMngt.get(stageId);
 //			std::cout << "Stage " << stageId << " processing" << std::endl;
 //			std::cout << "NumEl2Process " << it->size() << std::endl;
 
@@ -331,7 +334,9 @@ void as::GPUWorker::run () {
 //			TF.d_partForce2Grad(it->devLocLigId(), it->size(), d_potLig[pipeIdx[0]], hd_res[pipeIdx[0]], streams[3]);
 
 			/* new version */
-			TF.d_partForce2GradAll(it->devLocLigId(), it->size(), numAtoms, d_potLig[pipeIdx[0]], hd_res[pipeIdx[0]], streams[3]);
+			TF.d_partForce2GradAll(it->size(), numAtomsLig, d_dof[pipeIdx[1]], d_potLig[pipeIdx[0]], hd_res[pipeIdx[0]], streams[3]);
+			/* Device: Signal event when reduction has completed */
+			cudaVerify(cudaEventRecord(events[2], streams[3]));
 
 			/* Device: Signal event when reduction has completed */
 			cudaVerify(cudaEventRecord(events[5+pipeIdx[0]], streams[3]));
@@ -363,35 +368,6 @@ void as::GPUWorker::run () {
 			predicates[pipeIdx[0]][3] = true;
 		}
 
-//		/* stage 5
-//		 * This stage is chronologically called after stage 4 because it waits for completion of
-//		 * stage 4 belonging the previous iteration.
-//		 * However, it has to be called before stage 4 in order process data before the host thread
-//		 * gets synchronized to wait for completion of device tasks that were scheduled in previous stages.
-//		 *
-//		 * This stage is responsible for copying results to the EnGrad buffer of the respective work item.*/
-//
-//		/* check if stage 4 was executed in last iteration */
-//		if (predicates[pipeIdx[1]][4] == true)
-//		{
-//			const static unsigned stageId = 5;
-//			const WorkerItem* it = stagesMngt.get(stageId);
-//			std::cout << "Stage " << stageId << " processing" << std::endl;
-//			std::cout << "NumEl2Process " << it->size() << std::endl;
-//
-//
-//
-//			/* signal that this stage was executed within the current iteration */
-//			/* not needed because not stage waits for completion but good for monitoring
-//			 * what is happening*/
-//
-//
-//
-//			predicates[pipeIdx[0]][5] = true;
-//			/* signal that one item has been passed the last stage */
-//			--numItemsInPipe;
-//		}
-
 		/* stage 4
 		 * Performs final reduction and copies result directly to EnGrad buffer of work item */
 
@@ -406,7 +382,7 @@ void as::GPUWorker::run () {
 			/* Host: Wait for completion of data transfer to complete */
 			cudaVerify(cudaEventSynchronize(events[1]));
 			nvtxRangePushA("Host");
-			TF.h_finalForce2Grad(LigMngt.get(stageId),it->size(), it->DOFBuffer(), hd_res[pipeIdx[0]], it->EnGradBuffer());
+			TF.h_finalForce2Grad(nullptr,it->size(), it->DOFBuffer(), hd_res[pipeIdx[0]], it->EnGradBuffer());
 			nvtxRangePop();
 			/* Signal that result is in buffer */
 			it->setReady();

@@ -25,13 +25,16 @@
 #include "as/Protein.h"
 #include "as/ParamTable.h"
 #include "as/SimParam.h"
+#include "as/asTypes.h"
 
 namespace asCore {
 
 
 template<bool NLOnly>
 __global__ void d_NLPotForce(const unsigned gridId,
-		const unsigned RecId, const unsigned LigId,
+		const unsigned RecIdFirst,
+		const as::DOF* dofs,
+		const unsigned LigIdFirst,
 		const unsigned numDOFs,
 		const float* LigPosX,
 		const float* LigPosY,

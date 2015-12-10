@@ -157,7 +157,7 @@ int main (int argc, char *argv[]) {
 
 	/* read dofs */
 	std::vector<std::vector<as::DOF>> DOF_molecules;
-	asDB::readDOFFromFile(dofName, DOF_molecules);
+	asDB::readEnsembleDOFFromFile(dofName, DOF_molecules);
 	/* check file. only one receptor-ligand pair (no multi-bodies!) is allowed */
 	if(DOF_molecules.size() != 2) {
 		log->error() << "DOF-file contains defintions for more than two molecules. Multi-body docking is not supported." << endl;
@@ -271,6 +271,8 @@ int main (int argc, char *argv[]) {
 
 	/* transform ligand dofs assuming that the receptor is always centered in the origin */
 	asClient::transformDOF_glob2rec(DOF_molecules[0], DOF_molecules[1], pivots[0], pivots[1], centered_receptor, centered_ligands);
+	/* TODO: copy receptor ids to ligand dofs */
+
 	as::DOF* dofBuffer = DOF_molecules[1].data();
 
 	/* Allocate result buffer */
@@ -299,7 +301,7 @@ int main (int argc, char *argv[]) {
 
 		nvtxRangePushA("Main Submit");
 		while (reqIds[0] == -1 && count < wait_ms) {
-			reqIds[0] = server.submitRequest(dofBuffer, strucPerSubmit, gridId, recId, ligId, as::Request::CPU);
+			reqIds[0] = server.submitRequest(dofBuffer, strucPerSubmit, gridId,  as::Request::CPU);
 			if (reqIds[0] >= 0) {
 				break;
 
@@ -320,7 +322,7 @@ int main (int argc, char *argv[]) {
 		for (int i = 1; i < numSubmitIter; ++i) {
 			nvtxRangePushA("Main Submit");
 			while (reqIds[0] == -1 && count < wait_ms) {
-				reqIds[0] = server.submitRequest(dofBuffer + i*strucPerSubmit, i == (numSubmitIter -1) ?  strucPerSubmitLast : strucPerSubmit, gridId, recId, ligId, as::Request::CPU);
+				reqIds[0] = server.submitRequest(dofBuffer + i*strucPerSubmit, i == (numSubmitIter -1) ?  strucPerSubmitLast : strucPerSubmit, gridId,  as::Request::CPU);
 				if (reqIds[0] >= 0) {
 					break;
 
@@ -396,7 +398,7 @@ int main (int argc, char *argv[]) {
 
 		nvtxRangePushA("Main Submit");
 		while (reqIds[0] == -1 && count < wait_ms) {
-			reqIds[0] = server.submitRequest(dofBuffer, strucPerSubmit, gridId, recId, ligId, as::Request::GPU);
+			reqIds[0] = server.submitRequest(dofBuffer, strucPerSubmit, gridId,  as::Request::GPU);
 			if (reqIds[0] >= 0) {
 				break;
 
@@ -417,7 +419,7 @@ int main (int argc, char *argv[]) {
 		for (int i = 1; i < numSubmitIter; ++i) {
 			nvtxRangePushA("Main Submit");
 			while (reqIds[0] == -1 && count < wait_ms) {
-				reqIds[0] = server.submitRequest(dofBuffer + i*strucPerSubmit, i == (numSubmitIter -1) ?  strucPerSubmitLast : strucPerSubmit, gridId, recId, ligId, as::Request::GPU);
+				reqIds[0] = server.submitRequest(dofBuffer + i*strucPerSubmit, i == (numSubmitIter -1) ?  strucPerSubmitLast : strucPerSubmit, gridId, as::Request::GPU);
 				if (reqIds[0] >= 0) {
 					break;
 

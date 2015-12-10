@@ -23,6 +23,7 @@
 
 #include "asUtils/macros.h"
 #include "asUtils/helper.h"
+#include "as/asTypes.h"
 
 
 namespace asCore {
@@ -41,7 +42,8 @@ namespace asCore {
 
 template <class T>
 __host__ void reduceAll(const unsigned& threads, const unsigned& blocks,
-		const unsigned& protId, const unsigned& size,
+		const unsigned& numAtomsLigand,
+		as::DOF* dofs,
 		T *d_fx, T *d_fy, T *d_fz, T *d_eVdW, T *d_eEl,
 		T *d_odata,
 		const cudaStream_t& stream);

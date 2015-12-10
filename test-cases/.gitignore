@@ -9,6 +9,7 @@
 !receptor-rmsd.pdb
 !*base_files.tar.gz
 !*.sh
+!*.zip
 
 # But exclude
 clean.sh

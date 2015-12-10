@@ -97,16 +97,20 @@ void as::CPUWorker::run ()
 //		static int count = -1;
 //		count++;
 
-		const Protein* rec = getProtein(item->globRecId());
-		const Protein* lig = getProtein(item->globLigId());
 		const GridUnion* grid = getGridUnion(item->globGridId());
 		const AttrParamTable* table = getParamTable();
 		const SimParam* simPar = getSimParam();
 
 		for (unsigned i = 0; i < item->size(); ++i) {
 			nvtxRangePushA("CPUWorker Processing");
+
 			const DOF& dof = item->DOFBuffer()[i];
 			EnGrad& engrad = item->EnGradBuffer()[i];
+
+			const Protein* rec = getProtein(dof.recId);
+			const Protein* lig = getProtein(dof.ligId);
+
+
 			asUtils::RotMatf rotMat;
 
 			asCore::euler2rotmat(dof.ang.x, dof.ang.y, dof.ang.z, rotMat);

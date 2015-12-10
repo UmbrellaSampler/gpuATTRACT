@@ -12,31 +12,31 @@
  ****************************/
 using namespace as;
 
-void asCore::Transformer::d_DOF2Pos(const unsigned& protId,
+void asCore::Transformer::d_DOF2Pos(const unsigned& numLigAtoms,
 			const unsigned &numDOFs, const Comp1_HD<DOF, DEVONLY>* dofs,
 			Comp3_HD<float, DEVONLY>* posTr,
 			const cudaStream_t &stream)
 {
 	cudaVerifyKernel((
-			asCore::d_DOF2Pos<<<_gridSize, _blockSize, 0, stream>>>(protId,
+			asCore::d_DOF2Pos<<<_gridSize, _blockSize, 0, stream>>>(numLigAtoms,
 				numDOFs, dofs->d_data(),
 				posTr->d_x(), posTr->d_y(), posTr->d_z())
 			));
 }
 
-void asCore::Transformer::d_DOF2Pos_modes(const unsigned& protId,
-			const unsigned &numDOFs, const Comp1_HD<DOF, DEVONLY>* dofs,
-			Comp3_HD<float, DEVONLY>* posTr,
-			Comp3_HD<float, DEVONLY>* posDef,
-			const cudaStream_t &stream)
-{
-	cudaVerifyKernel((
-			asCore::d_DOF2Pos_modes<<<_gridSize, _blockSize, 0, stream>>>(protId,
-				numDOFs, dofs->d_data(),
-				posTr->d_x(), posTr->d_y(), posTr->d_z(),
-				posDef->d_x(), posDef->d_y(), posDef->d_z())
-	));
-}
+//void asCore::Transformer::d_DOF2Pos_modes(const unsigned& protId,
+//			const unsigned &numDOFs, const Comp1_HD<DOF, DEVONLY>* dofs,
+//			Comp3_HD<float, DEVONLY>* posTr,
+//			Comp3_HD<float, DEVONLY>* posDef,
+//			const cudaStream_t &stream)
+//{
+//	cudaVerifyKernel((
+//			asCore::d_DOF2Pos_modes<<<_gridSize, _blockSize, 0, stream>>>(protId,
+//				numDOFs, dofs->d_data(),
+//				posTr->d_x(), posTr->d_y(), posTr->d_z(),
+//				posDef->d_x(), posDef->d_y(), posDef->d_z())
+//	));
+//}
 
 //void asCore::Transformer::d_partForce2Grad(const unsigned& protId,
 //			const unsigned &numDOFs,
@@ -56,16 +56,18 @@ void asCore::Transformer::d_DOF2Pos_modes(const unsigned& protId,
 //
 //}
 
-void asCore::Transformer::d_partForce2GradAll(const unsigned& protId,
+void asCore::Transformer::d_partForce2GradAll(
 			const unsigned &numDOFs,
 			const unsigned &sizeLigand,
+			const Comp1_HD<DOF, DEVONLY>* dofs,
 			const Comp5_HD<float, DEVONLY>* outPotForce,
 			Comp1_HD<float, HOST_PINNED>* reduce_res,
 			const cudaStream_t &stream)
 {
 	unsigned threads  = (sizeLigand < _blockSizeRed*2) ? asUtils::nextPow2((sizeLigand + 1)/ 2) : _blockSizeRed;
 	unsigned blocks = numDOFs;
-	asCore::reduceAll(threads, blocks, protId, sizeLigand,
+	asCore::reduceAll(threads, blocks, sizeLigand,
+			dofs->d_data(),
 			outPotForce->d_x(),
 		    outPotForce->d_y(),
 		    outPotForce->d_z(),

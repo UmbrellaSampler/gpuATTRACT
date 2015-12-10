@@ -713,6 +713,62 @@ void asDB::readDOFFromFile(std::string filename, std::vector<std::vector<as::DOF
 
 }
 
+void asDB::readEnsembleDOFFromFile(std::string filename, std::vector<std::vector<as::DOF>>& DOF_molecules ) {
+	using namespace std;
+	using namespace as;
+
+	ifstream file(filename);
+
+	string line;
+	int i_molecules = 0;
+	if (file.is_open()) {
+		while (!file.eof()) {
+
+			getline(file, line);
+
+
+			if (!line.compare(0,1, "#")) { // 0 == true
+				continue;
+			}
+
+			/* read all dofs until the next "#" */
+			unsigned i = 0;
+			while (line.compare(0,1, "#") != 0 && !file.eof()) {
+
+				if (i_molecules == 0) {
+					DOF_molecules.push_back(std::vector<as::DOF> ());
+				}
+
+				std::vector<as::DOF>& vec = DOF_molecules[i];
+				DOF dof ;
+				{
+					stringstream stream(line);
+					stream >> dof.ligId >> dof.ang.x >> dof.ang.y >> dof.ang.z
+						>> dof.pos.x >> dof.pos.y >> dof.pos.z;
+				}
+				vec.push_back(dof);
+
+				++i;
+				getline(file, line);
+			}
+			/* check if i equals the number of molecules == DOF_molecules.size(),
+			 * otherwise we miss a molecule in the definition */
+			if (i != DOF_molecules.size()) {
+				errorDOFFormat(filename);
+				cerr << "The DOF definition is incomplete at #" << i_molecules << "." << endl;
+						exit(EXIT_FAILURE);
+			}
+			++i_molecules;
+		}
+	} else {
+		cerr << "Error: Failed to open file " << filename << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	file.close();
+
+}
+
 void asDB::readDOFHeader(std::string filename, std::vector<asUtils::Vec3f>& pivots,
 		bool& auto_pivot, bool& centered_receptor, bool& centered_ligands) {
 	using namespace std;

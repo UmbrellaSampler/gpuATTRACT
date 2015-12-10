@@ -94,12 +94,14 @@ $(OBJECTS_CU:.o=.d): $(OBJDIR)/%.d: %.cu
 	@echo 'Finished building: $<"'
 	@echo ' '	
 
+
 # do not include if we execute for cleanall or clean
-ifneq (,$(filter cleanall clean,$(MAKECMDGOAL)))
-	-include $(OBJECTS:.o=.d)
+ifneq (,$(filter $(MAKECMDGOAL), cleanall clean))
+else
+include $(OBJECTS:.o=.d)
 endif
 
-	
+
 .PHONY: all clean cleanall clean_deps
 
 all: $(BINARY)

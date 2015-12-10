@@ -64,15 +64,6 @@ public:
 		return _workItems.front()->globGridId();
 	}
 
-	inline unsigned globRecId() const {
-		assert(_workItems.size() > 0);
-		return _workItems.front()->globRecId();
-	}
-
-	inline unsigned globLigId() const {
-		assert(_workItems.size() > 0);
-		return _workItems.front()->globLigId();
-	}
 
 	/***************
 	* S E T T E R
