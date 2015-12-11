@@ -233,7 +233,7 @@ C$$$           do i=1,nlig
 C$$$              if (nrens(i).gt.0.and.morph(i).lt.0) then
 C$$$C$$$                 call GGUBS(dseed,3,rr)
 C$$$                 if (rr(1).lt.ensprob.and.rr(3).lt.float(i)/nlig) then
-C$$$c	    ens(i) = int(rr(2)*nrens(i))+1
+C$$$c       ens(i) = int(rr(2)*nrens(i))+1
 C$$$                    call enstrans(cartstatehandle,i-1,ens(i),rr(2),
 C$$$     2                   ens(i))
 C$$$                    exit
@@ -390,10 +390,10 @@ c      print*,"accepts ", accepts
          accept_rate = real(accepts)/trials
          if(accept_rate.gt.0.3) then
             scalecenter=scalecenter*1.1
-	    if ( scalerot*1.1<pi ) then
+        if ( scalerot*1.1<pi ) then
 c control scalerot range in [0 pi]
                scalerot=scalerot*1.1
-	    endif
+        endif
          endif
          if(accept_rate.lt.0.3) then
             scalecenter=scalecenter*0.9
