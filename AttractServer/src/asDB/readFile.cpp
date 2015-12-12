@@ -874,48 +874,26 @@ void asDB::readDOFHeader(std::string filename, std::vector<asUtils::Vec3f>& pivo
 	}
 }
 
+std::vector<std::string> asDB::readFileNamesFromEnsembleList(std::string filename) {
+	using namespace std;
+	using namespace as;
 
-///* outer grid */
-//	GradEnGridDesc gridDescOuter;
-//	memcpy(gridDescOuter.typemask, grid.alphabet, 99 * sizeof(bool));
-//	gridDescOuter.numGrids = grid.alphabetsize + 1;
-//	gridDescOuter.width = grid.gridx2;
-//	gridDescOuter.height = grid.gridy2;
-//	gridDescOuter.depth = grid.gridz2;
-//	gridDescOuter.gridSpacing = 2 * grid.gridspacing;
-//	for (int n = 0; n < 3; n++)
-//		gridDescOuter.posMin[n] = grid.ori[n]
-//				- grid.gridextension * grid.gridspacing;
-//	gridsize = gridDescOuter.width * gridDescOuter.height * gridDescOuter.depth
-//			* gridDescOuter.numGrids;
-//	gridDescOuter.grid = new float4[gridsize];
-//	memset(gridDescOuter.grid, 0, gridsize * sizeof(float4));
-//	gridpos = 0;
-//	for (int atomtype = 0; atomtype <= grid.alphabetsize; atomtype++) {
-//		if (atomtype < grid.alphabetsize && !grid.alphabet[atomtype])
-//			continue;
-//		for (unsigned int z = 0; z < gridDescOuter.depth; z++) {
-//			for (unsigned int y = 0; y < gridDescOuter.height; y++) {
-//				for (unsigned int x = 0; x < gridDescOuter.width; x++) {
-//					unsigned int index = gridDescOuter.width * gridDescOuter.height * z
-//							+ gridDescOuter.width * y + x;
-//					Potential &p = grid.biggrid[index];
-//					int energradindex;
-//					if (atomtype == grid.alphabetsize) {
-//						energradindex = p[MAXATOMTYPES];
-//					} else {
-//						energradindex = p[atomtype];
-//					}
-//					if (energradindex > 0) {
-//						EnerGradStd &e = grid.energrads_std[energradindex - 1];
-//						float4 &gg = gridDescOuter.grid[gridpos];
-//						gg.x = e.grad[0];
-//						gg.y = e.grad[1];
-//						gg.z = e.grad[2];
-//						gg.w = e.energy;
-//					}
-//					gridpos++;
-//				}
-//			}
-//		}
-//	}
+	ifstream file(filename);
+
+	vector<string> fileNames;
+	string line;
+	if (file.is_open()) {
+		getline(file, line);
+		while (!file.eof()) {
+			fileNames.push_back(line);
+			getline(file, line);
+		}
+	} else {
+		cerr << "Error: Failed to open file " << filename << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	file.close();
+	return fileNames;
+}
+

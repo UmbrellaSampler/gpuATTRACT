@@ -94,11 +94,14 @@ $(OBJECTS_CU:.o=.d): $(OBJDIR)/%.d: %.cu
 	@echo 'Finished building: $<"'
 	@echo ' '	
 
+ifneq ($(MAKECMDGOALS), clean)
+ifneq ($(MAKECMDGOALS), cleanall)
+-include $(OBJECTS:.o=.d)
+endif
+endif
 
-# do not include if we execute for cleanall or clean
-ifneq (,$(filter $(MAKECMDGOAL), cleanall clean))
-else
-include $(OBJECTS:.o=.d)
+ifeq ($(MAKECMDGOALS), " ")
+-include $(OBJECTS:.o=.d)
 endif
 
 

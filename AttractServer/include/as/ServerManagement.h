@@ -86,6 +86,9 @@ public:
 
 	int addProtein (int clientId, std::string filename);
 	int addProtein (std::string protein);
+	std::vector<int> addProteinEnsemble(int clientId, std::string filename);
+	std::vector<int> addProteinEnsemble(std::string filename);
+
 	int addGridUnion (int clientId, std::string filename);
 	int addGridUnion (std::string gridUnion);
 

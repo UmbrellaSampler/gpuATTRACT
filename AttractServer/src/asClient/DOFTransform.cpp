@@ -24,8 +24,6 @@
 #include <asClient/DOFTransform.h>
 #include <asUtils/cudaMath.h>
 
-void
-
 void asClient::transformDOF_glob2rec(const std::vector<as::DOF>& dof_rec, std::vector<as::DOF>& dof_lig,
 			const asUtils::Vec3f& pivot_rec, const asUtils::Vec3f& pivot_lig,
 			bool centered_rec, bool centered_lig) {

@@ -24,7 +24,7 @@
 /* DataManagement defines */
 
 #define DEVICE_MAXGRIDS 6		/** Max. supported grid per Device */
-#define DEVICE_MAXPROTEINS 20	/** Max. supported proteins per Device */
+#define DEVICE_MAXPROTEINS 100	/** Max. supported proteins per Device */
 
 /* mngt defines */
 

@@ -224,8 +224,26 @@ int as::DataManagement::addProtein (std::string name) {
 	return addProtein(-1, name);
 }
 
-int as::DataManagement::addGridUnion (std::string name) {
-	return addGridUnion(-1, name);
+std::vector<int> as::DataManagement::addProteinEnsemble(int clientId, std::string filename) {
+	std::vector<std::string> fileNames = asDB::readFileNamesFromEnsembleList(filename);
+	std::vector<int> proteinIds;
+	for (auto i = 0; i < fileNames.size(); ++i) {
+		int id = addProtein(clientId, fileNames[i]);
+		proteinIds.push_back(id);
+	}
+	/* Pivotize explicitly since all need to have the same pivot*/
+	Protein* prot0 = getProtein(proteinIds[0]);
+	for(auto id: proteinIds) {
+		getProtein(id)->pivotize(prot0->pivot());
+	}
+	return proteinIds;
+}
+std::vector<int> as::DataManagement::addProteinEnsemble(std::string filename) {
+	return addProteinEnsemble(-1, filename);
+}
+
+int as::DataManagement::addGridUnion (std::string filename) {
+	return addGridUnion(-1, filename);
 }
 
 void as::DataManagement::addParamTable(std::string name)
@@ -509,6 +527,10 @@ void as::DataManagement::attachProteinToDevice(int globalId, unsigned deviceId)
 
 	deviceProteinDesc &deviceDesc = cudaDesc.deviceDesc;
 	hostProteinResource &hostResc = cudaDesc.hostResc;
+
+	//DEBUG
+	std::cout << "deviceId=" << deviceId << " devloc=" << devloc << " globalId" << globalId << std::endl;
+
 	setDeviceProtein(deviceDesc, deviceId, devloc);
 
 	/* adapt device descriptions */
@@ -639,6 +661,9 @@ void as::DataManagement::updateDeviceIDLookup() {
 	const int sizeSlice = (sizeProts * (sizeProts + 1)) / 2;
 	const int size =  sizeGrids * sizeSlice;
 
+	//DEBUG
+	std::cout << "updateDeviceIDLookup: size=" << size << std::endl;
+
 	/* lookup layout: lower trianglular matrix */
 
 	std::vector< std::set<unsigned> > lookUp(size);
@@ -646,7 +671,9 @@ void as::DataManagement::updateDeviceIDLookup() {
 		for (int j = 0; j < sizeProts; ++j) {
 			const int shift = (j*(j+1)) / 2;
 			for(int k = 0; k <= j; ++k) {
-				lookUp[i*sizeSlice + j*shift + k] = clacCommonDeviceIDs(i,j,k);
+				std::cout << i*sizeSlice + shift + k << std::endl;
+				lookUp[i*sizeSlice + shift + k] = clacCommonDeviceIDs(i,j,k);
+
 			}
 		}
 	}

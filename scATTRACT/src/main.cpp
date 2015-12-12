@@ -54,6 +54,9 @@ void init_logger( bool use_file = true) {
 
 void printResultsScore(unsigned numDOFs, as::DOF* dofs, as::EnGrad* enGrads);
 
+void copyRecIds2LigDof(std::vector<std::vector<as::DOF>>& DOF_molecules);
+void applyIdMapping(std::vector<as::DOF>& dofs, int shift);
+
 int main (int argc, char *argv[]) {
 
 	/* initialize Logger */
@@ -62,8 +65,8 @@ int main (int argc, char *argv[]) {
 	unique_ptr<Log::Logger> log(score::_log);
 
 	/* required variables */
-	string recName;
-	string ligName;
+	string recListName;
+	string ligListName;
 	string gridName;
 	string paramsName;
 	string dofName;
@@ -93,8 +96,8 @@ int main (int argc, char *argv[]) {
 		TCLAP::ValueArg<string> dofArg("","dof","",true,"Structure (DOF) file","*.dat", cmd);
 
 		/* define optional arguments */
-		TCLAP::ValueArg<string> recArg("r","receptor-pdb","pdb-file name of receptor. (Default: receptorr.pdb)", false,"receptorr.pdb","*.pdb", cmd);
-		TCLAP::ValueArg<string> ligArg("l","ligand-pdb","pdb-file name of ligand. (Default: ligandr.pdb)", false, "ligandr.pdb","*.pdb", cmd);
+		TCLAP::ValueArg<string> recArg("r","receptor-list","list of pdb-files of receptor file names. (Default: partner1-ensemble.list)", false,"partner1-ensemble.list","*.list", cmd);
+		TCLAP::ValueArg<string> ligArg("l","ligand-list","list of pdb-files of ligand file names. (Default: partner2-ensemble.list)", false,"partner2-ensemble.list","*.list", cmd);
 		TCLAP::ValueArg<string> gridArg("g","grid","Receptor grid file. (Default: receptorgrid.grid)",false, "receptorgrid.grid","*.grid", cmd);
 		TCLAP::ValueArg<string> paramArg("p","par","Attract parameter file. (Default: attract.par)",false,"attract.par","*.par", cmd);
 
@@ -115,8 +118,8 @@ int main (int argc, char *argv[]) {
 		cmd.parse(argc, argv);
 
 		/* Assigne parsed values */
-		recName 	= recArg.getValue();
-		ligName 	= ligArg.getValue();
+		recListName 	= recArg.getValue();
+		ligListName 	= ligArg.getValue();
 		gridName 	= gridArg.getValue();
 		paramsName 	= paramArg.getValue();
 		dofName 	= dofArg.getValue();
@@ -131,8 +134,8 @@ int main (int argc, char *argv[]) {
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
 	}
 
-	log->info() << "recName=" << recName 		<< endl;
-	log->info() << "ligName=" << ligName 		<< endl;
+	log->info() << "recListName=" << recListName 		<< endl;
+	log->info() << "ligListName=" << ligListName 		<< endl;
 	log->info() << "gridName=" << gridName 		<< endl;
 	log->info() << "parName=" << paramsName 	<< endl;
 	log->info() << "dofName=" << dofName	 	<< endl;
@@ -180,7 +183,8 @@ int main (int argc, char *argv[]) {
 	/* only a maximum number of items per request is allowed since too many items introduce a large overhead.
 	 * To circumvent this problem, we split into multiple requests */
 
-	int ligandSize = asDB::readProteinSizeFromPDB(ligName);
+	std::vector<string> ligEnsembleFileNames = asDB::readFileNamesFromEnsembleList(ligListName);
+	int ligandSize = asDB::readProteinSizeFromPDB(ligEnsembleFileNames[0]);
 	int deviceBufferSize = ligandSize*chunkSize;
 	int numDofs = DOF_molecules[0].size();
 	int numItems = (numDofs + chunkSize - 1) /chunkSize;
@@ -214,31 +218,47 @@ int main (int argc, char *argv[]) {
 
 	/* load proteins and grid, and get a handle to it*/
 	const int clientId = 0; // by specifing a client id, we may remove all added data by the by a call to removeClient(id)
-	int ligId, recId, gridId;
-	recId = server.addProtein(clientId, recName);
-	ligId = server.addProtein(clientId ,ligName);
-	gridId = server.addGridUnion(clientId, gridName);
+
+	std::vector<int> recIds = server.addProteinEnsemble(clientId, recListName);
+	std::vector<int> ligIds = server.addProteinEnsemble(clientId ,ligListName);
+	int gridId = server.addGridUnion(clientId, gridName);
 	server.addParamTable(paramsName);
 
-//	server.getProtein(recId)->print();
+	//DEBUG
+	for (auto id : recIds) {
+		cout << id << " ";
+	}
+	cout << endl;
+	for (auto id : ligIds) {
+		cout << id << " ";
+	}
+	cout << endl;
+
+//	server.getProtein(recIds)->print();
 
 	if(autoPivot) {
 		if (!pivots.empty()) {
 			log->error() << "Auto pivot specified, but explicitly definined pivots available. (File "<< dofName << ")" << endl;
 			exit(EXIT_FAILURE);
 		}
-		pivots.push_back(server.getProtein(recId)->pivot());
-		pivots.push_back(server.getProtein(ligId)->pivot());
+
+		pivots.push_back(server.getProtein(recIds[0])->pivot());
+		pivots.push_back(server.getProtein(ligIds[0])->pivot());
+
 	} else {
 		if (pivots.size() != 2) {
 			log->error() << "No auto pivot specified, but number of definined pivots is incorrect. (File "<< dofName << ")" << endl;
 			exit(EXIT_FAILURE);
 		}
-		server.getProtein(recId)->pivotize(pivots[0]);
-		server.getProtein(ligId)->pivotize(pivots[1]);
+		for(auto recId: recIds) {
+			server.getProtein(recId)->pivotize(pivots[0]);
+		}
+		for(auto ligId: ligIds) {
+			server.getProtein(ligId)->pivotize(pivots[1]);
+		}
 	}
 
-//	server.getProtein(recId)->print();
+//	server.getProtein(recIds)->print();
 
 	log->info() << "pivots= "; for (auto pivot : pivots) *log << pivot << ", "; *log << endl;
 
@@ -271,7 +291,11 @@ int main (int argc, char *argv[]) {
 
 	/* transform ligand dofs assuming that the receptor is always centered in the origin */
 	asClient::transformDOF_glob2rec(DOF_molecules[0], DOF_molecules[1], pivots[0], pivots[1], centered_receptor, centered_ligands);
-	/* TODO: copy receptor ids to ligand dofs */
+
+	/* copy receptor ids to ligand dofs*/
+	copyRecIds2LigDof(DOF_molecules);
+
+	applyIdMapping(DOF_molecules[1], recIds.size());
 
 	as::DOF* dofBuffer = DOF_molecules[1].data();
 
@@ -378,17 +402,21 @@ int main (int argc, char *argv[]) {
 		 * Note, in general, not all data need to be available at each GPU */
 		for (auto deviceId : devices) {
 			server.addGPUWorker(deviceId);
-			server.attachProteinToDevice(recId, deviceId);
-			server.attachProteinToDevice(ligId, deviceId);
+			for (auto recId : recIds) {
+				server.attachProteinToDevice(recId, deviceId);
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			}
+			for (auto ligId : ligIds) {
+				server.attachProteinToDevice(ligId, deviceId);
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			}
 			server.attachGridUnionToDevice(gridId, deviceId);
 			server.attachParamTableToDevice(deviceId);
 		}
 
 		/* after the data transfere, we need to call updateDeviceIDLookup() to let the dispatcher know
 		 * which data is on which device */
-		if (devices.size() > 0) {
-			server.updateDeviceIDLookup();
-		}
+		server.updateDeviceIDLookup();
 
 		int reqIds[2] = {-1, -1};
 
@@ -508,10 +536,27 @@ void printResultsScore(unsigned numDOFs, as::DOF* dofs, as::EnGrad* enGrads)
 		cout << " Gradients: "
 				<< setw(width) << enGrad.ang.x  << setw(width) << enGrad.ang.y  << setw(width) << enGrad.ang.z
 				<< setw(width) << enGrad.pos.x  << setw(width) << enGrad.pos.y  << setw(width) << enGrad.pos.z  << endl;
+		cout << " DOFs: "
+				<< setw(width) << dof.recId << setw(width) << dof.ligId
+				<< setw(width) << dof.ang.x  << setw(width) << dof.ang.y  << setw(width) << dof.ang.z
+				<< setw(width) << dof.pos.x  << setw(width) << dof.pos.y  << setw(width) << dof.pos.z  << endl;
 		cout.unsetf(ios::scientific);
 
 	}
 
 	cout.precision(precisionSetting);
 	cout.flags(flagSettings);
+}
+
+void copyRecIds2LigDof(std::vector<std::vector<as::DOF>>& DOF_molecules) {
+	for (unsigned i = 0; i < DOF_molecules[0].size(); ++i) {
+		DOF_molecules[1][i].recId = DOF_molecules[0][i].ligId;
+	}
+}
+
+void applyIdMapping(std::vector<as::DOF>& dofs, int shift) {
+	for (unsigned i = 0; i < dofs.size(); ++i) {
+		dofs[i].recId -= 1;
+		dofs[i].ligId += shift - 1;
+	}
 }

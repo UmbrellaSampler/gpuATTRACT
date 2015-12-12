@@ -110,6 +110,15 @@ int as::ServerManagement::addProtein(std::string protein)
 {
 	return D_mngt.addProtein(protein);
 }
+
+std::vector<int> as::ServerManagement::addProteinEnsemble(int clientId, std::string filename) {
+	return D_mngt.addProteinEnsemble(clientId, filename);
+}
+
+std::vector<int> as::ServerManagement::addProteinEnsemble(std::string filename) {
+	return D_mngt.addProteinEnsemble(filename);
+}
+
 int as::ServerManagement::addGridUnion(int clientId, std::string filename)
 {
 	return D_mngt.addGridUnion(clientId, filename);

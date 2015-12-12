@@ -107,6 +107,8 @@ void readEnsembleDOFFromFile(std::string filename, std::vector<std::vector<as::D
 void readDOFHeader(std::string filename, std::vector<asUtils::Vec3f>& pivots,
 		bool& auto_pivot, bool& centered_receptor, bool& centered_ligands);
 
+std::vector<std::string> readFileNamesFromEnsembleList(std::string filename);
+
 } // namespace asDB
 
 

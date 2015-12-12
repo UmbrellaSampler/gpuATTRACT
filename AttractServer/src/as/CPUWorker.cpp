@@ -110,7 +110,6 @@ void as::CPUWorker::run ()
 			const Protein* rec = getProtein(dof.recId);
 			const Protein* lig = getProtein(dof.ligId);
 
-
 			asUtils::RotMatf rotMat;
 
 			asCore::euler2rotmat(dof.ang.x, dof.ang.y, dof.ang.z, rotMat);

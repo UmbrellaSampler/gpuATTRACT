@@ -179,8 +179,6 @@ typedef struct cudaProteinDesc {
 } cudaProteinDesc;
 
 
-
-
 struct deviceParamTableDesc {
 	uint numTypes;  					/** number of particle/atom types */
 	AttrParamTable::PotShape shape;		/** potential shape that is supported by the table */
