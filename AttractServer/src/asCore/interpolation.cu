@@ -114,7 +114,7 @@ __global__ void asCore::d_InnerPotForce(
 	const unsigned idx = blockDim.x * blockIdx.x + threadIdx.x;
 	const unsigned numAtoms = c_Proteins[protId].numAtoms;
 	if (idx < numAtoms*numDOFs) {
-		unsigned type = c_Proteins[protId].type[idx % numAtoms];
+		unsigned type = c_Proteins[protId].mappedType[idx % numAtoms];
 		float4 V_el = {0};
 		float4 V_VdW = {0};
 		if (type != 0) {
@@ -179,7 +179,7 @@ __global__ void asCore::d_OuterPotForce(
 	const unsigned idx = blockDim.x * blockIdx.x + threadIdx.x;
 	const unsigned numAtoms = c_Proteins[protId].numAtoms;
 	if (idx < numAtoms*numDOFs) {
-		unsigned type = c_Proteins[protId].type[idx % numAtoms];
+		unsigned type = c_Proteins[protId].mappedType[idx % numAtoms];
 		if (type != 0) {
 
 			float x = data_in_x[idx];
@@ -269,7 +269,7 @@ void asCore::h_PotForce(const as::IntrplGrid* innerGrid,
 	const unsigned numAtoms = prot->numAtoms();
 	/* loop over all elements in LigPos/output */
 	for (unsigned i = 0; i < numAtoms; ++i) {
-		const unsigned type = prot->mappedTypes()[i];
+		const unsigned type = prot->mappedType()[i];
 		if (type == 0)
 			continue;
 		float3 pos;

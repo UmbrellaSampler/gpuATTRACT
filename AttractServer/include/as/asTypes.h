@@ -159,6 +159,7 @@ typedef struct deviceProteinDesc {
 	float *zPos;
 
 	unsigned* type; 	/** atom type */
+	unsigned* mappedType;
 	float* charge;	/** charge of the atoms/particle */
 
 	unsigned numModes; /** number of modes */

@@ -105,9 +105,9 @@ int as::DataManagement::addProtein (int clientId, std::string name)
 	/* if not, read it and assign it to the first available location */
 	if (globId == -1) {
 		Protein* obj = asDB::createProteinFromPDB(name);
-		/* auto-pivotize and apply mapping by default */
+		/* auto-pivotize:
+		 * TODO move that elsewhere. This is behavior that is not expected */
 		obj->auto_pivotize();
-		obj->applyDefaultMapping();
 
 		Shared<Protein> sharedObj(obj);
 

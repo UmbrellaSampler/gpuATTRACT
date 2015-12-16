@@ -921,8 +921,6 @@ std::vector<unsigned> asDB::readGridAlphabetFromFile(std::string filename) {
 				exit(EXIT_FAILURE);
 			}
 			vec.push_back(static_cast<unsigned>(key));
-			//DEBUG
-			cout << key << endl;
 		}
 	} else {
 		cerr << "Error: Failed to open file " << filename << endl;

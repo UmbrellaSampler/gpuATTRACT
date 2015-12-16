@@ -81,6 +81,7 @@ int main (int argc, char *argv[]) {
 
 	int numToConsider;
 	int whichToTrack;
+	bool beSilent;
 	/* catch command line exceptions */
 	try {
 
@@ -114,6 +115,7 @@ int main (int argc, char *argv[]) {
 
 		TCLAP::ValueArg<int> num2ConsiderArg("","num", "Number of configurations to consider (1 - num). (Default: All)", false, -1, "int", cmd);
 		TCLAP::ValueArg<int> which2TrackArg("","focusOn", "Condider only this configuration. (Default: -1)", false, -1, "int", cmd);
+		TCLAP::SwitchArg silentArg("", "silent","Suppress result output.", cmd);
 
 
 		// parse cmd-line input
@@ -132,6 +134,7 @@ int main (int argc, char *argv[]) {
 		numToConsider = num2ConsiderArg.getValue();
 		whichToTrack = which2TrackArg.getValue();
 		recGridAlphabetName = gridAlphabet.getValue();
+		beSilent = silentArg.getValue();
 
 	} catch (TCLAP::ArgException &e){
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
@@ -267,7 +270,9 @@ int main (int argc, char *argv[]) {
 		std::vector<unsigned> mapVec = asDB::readGridAlphabetFromFile(recGridAlphabetName);
 		as::TypeMap typeMap = as::createTypeMapFromVector(mapVec);
 		for(auto ligId: ligIds) {
-			server.getProtein(ligId)->applyMapping(typeMap, gridId);
+			as::Protein* prot = server.getProtein(ligId);
+			as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->type());
+			as::applyMapping(typeMap, prot->numAtoms(), prot->type(), prot->mappedTypes());
 		}
 	}
 
@@ -319,17 +324,6 @@ int main (int argc, char *argv[]) {
 
 	as::EnGrad* GPU_enGradBuffer = GPU_enGrad.data();
     as::EnGrad* CPU_enGradBuffer = CPU_enGrad.data();
-
-
-    //DEBUG
-    if (numCPUs > 0 || devices.size() > 0) {
-		if (numCPUs > 0) {
-			printResultsScore(numDofs, dofBuffer, CPU_enGradBuffer);
-		}
-		if (devices.size() > 0) {
-			printResultsScore(numDofs, dofBuffer, GPU_enGradBuffer);
-		}
-	}
 
 	/* Perform calculations */
 	asUtils::Timer timer;
@@ -518,7 +512,7 @@ int main (int argc, char *argv[]) {
 	}
 
 
-	if (numCPUs > 0 || devices.size() > 0) {
+	if (!(numCPUs > 0 && devices.size() > 0) && !beSilent) {
 		if (numCPUs > 0) {
 			printResultsScore(numDofs, dofBuffer, CPU_enGradBuffer);
 		}
