@@ -67,10 +67,13 @@ as::Protein::Protein(ProteinDesc desc) :
 
 /* Destructor */
 as::Protein::~Protein() {
-	if (_pos     != nullptr) delete[] _pos;
-	if (_charge  != nullptr) delete[] _charge;
-	if (_type    != nullptr) delete[] _type;
-	if (_modes   != nullptr) delete[] _modes;
+	delete[] _pos;
+	delete[] _charge;
+	delete[] _type;
+	delete[] _modes;
+	for (auto ptr : _mappedTypes ) {
+		delete ptr;
+	}
 }
 
 

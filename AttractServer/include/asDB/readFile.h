@@ -109,6 +109,8 @@ void readDOFHeader(std::string filename, std::vector<asUtils::Vec3f>& pivots,
 
 std::vector<std::string> readFileNamesFromEnsembleList(std::string filename);
 
+std::vector<unsigned> readGridAlphabetFromFile(std::string filename);
+
 } // namespace asDB
 
 

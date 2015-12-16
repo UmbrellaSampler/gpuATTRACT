@@ -38,6 +38,7 @@ static void errorDOFFormat(std::string filename) {
 			<< ". DOF-Format is not supported." << std::endl;
 }
 
+
 static std::vector<std::string> line2Strings(std::string line) {
 	using namespace std;
 	istringstream iss(line);
@@ -895,5 +896,39 @@ std::vector<std::string> asDB::readFileNamesFromEnsembleList(std::string filenam
 
 	file.close();
 	return fileNames;
+}
+
+static void errorGridAlphabetFormat(std::string filename) {
+	std::cerr << "Error reading file " << filename
+			<< ". Grid alphabet format is not supported." << std::endl;
+}
+
+std::vector<unsigned> asDB::readGridAlphabetFromFile(std::string filename) {
+
+	using namespace std;
+	using namespace as;
+
+	ifstream file(filename);
+	vector<unsigned> vec;
+	string line;
+	if (file.is_open()) {
+		while (std::getline(file, line))
+		{
+			std::istringstream iss(line);
+			int key = 0; // serves as a key value pair for a map
+			if (!(iss >> key) || key < 0) {
+				errorGridAlphabetFormat(filename);
+				exit(EXIT_FAILURE);
+			}
+			vec.push_back(static_cast<unsigned>(key));
+			//DEBUG
+			cout << key << endl;
+		}
+	} else {
+		cerr << "Error: Failed to open file " << filename << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	return vec;
 }
 

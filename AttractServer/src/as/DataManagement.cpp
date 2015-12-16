@@ -528,9 +528,6 @@ void as::DataManagement::attachProteinToDevice(int globalId, unsigned deviceId)
 	deviceProteinDesc &deviceDesc = cudaDesc.deviceDesc;
 	hostProteinResource &hostResc = cudaDesc.hostResc;
 
-	//DEBUG
-	std::cout << "deviceId=" << deviceId << " devloc=" << devloc << " globalId" << globalId << std::endl;
-
 	setDeviceProtein(deviceDesc, deviceId, devloc);
 
 	/* adapt device descriptions */
@@ -661,9 +658,6 @@ void as::DataManagement::updateDeviceIDLookup() {
 	const int sizeSlice = (sizeProts * (sizeProts + 1)) / 2;
 	const int size =  sizeGrids * sizeSlice;
 
-	//DEBUG
-	std::cout << "updateDeviceIDLookup: size=" << size << std::endl;
-
 	/* lookup layout: lower trianglular matrix */
 
 	std::vector< std::set<unsigned> > lookUp(size);
@@ -671,7 +665,6 @@ void as::DataManagement::updateDeviceIDLookup() {
 		for (int j = 0; j < sizeProts; ++j) {
 			const int shift = (j*(j+1)) / 2;
 			for(int k = 0; k <= j; ++k) {
-				std::cout << i*sizeSlice + shift + k << std::endl;
 				lookUp[i*sizeSlice + shift + k] = clacCommonDeviceIDs(i,j,k);
 
 			}

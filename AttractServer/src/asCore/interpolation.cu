@@ -269,7 +269,7 @@ void asCore::h_PotForce(const as::IntrplGrid* innerGrid,
 	const unsigned numAtoms = prot->numAtoms();
 	/* loop over all elements in LigPos/output */
 	for (unsigned i = 0; i < numAtoms; ++i) {
-		const unsigned type = prot->type()[i];
+		const unsigned type = prot->mappedTypes()[i];
 		if (type == 0)
 			continue;
 		float3 pos;

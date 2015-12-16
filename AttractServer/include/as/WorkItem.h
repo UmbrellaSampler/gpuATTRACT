@@ -42,6 +42,7 @@ public:
 		_DOFs(dofs),
 		_EnGrads(enGrads),
 		_numDOFs(numDOFs),
+		_globGridId(globGridId),
 		_devLocGridId(devLocGridId),
 		_ready(false){}
 

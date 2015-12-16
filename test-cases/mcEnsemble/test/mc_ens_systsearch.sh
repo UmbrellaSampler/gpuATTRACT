@@ -25,8 +25,8 @@ scoreparams="$ATTRACTDIR/../attract.par partner1-ensemble/model-1r.pdb partner2-
 gridparams=" --grid 1 receptorgrid.gridheader"
 
 #parallelization parameters
-parals="--np 48 --chunks 48"
-if [ 1 -eq 1 ]; then ### move and change to disable parts of the protocol
+parals="--np 8 --chunks 8"
+if [ 1 -eq 0 ]; then ### move and change to disable parts of the protocol
 
 echo '**************************************************************'
 echo 'Generate starting structures...'
@@ -55,8 +55,11 @@ echo '**************************************************************'
 echo 'calculate receptorgrid grid'
 echo '**************************************************************'
 awk '{print substr($0,58,2)}' partner2-ensemble/model-1r.pdb | sort -nu > receptorgrid.alphabet
-$ATTRACTDIR/make-grid-omp partner1-ensemble/model-1r.pdb $ATTRACTDIR/../attract.par 10.0 12.0 receptorgrid.gridheader  --shm --alphabet receptorgrid.alphabet
+$ATTRACTDIR/make-grid-omp partner1-ensemble/model-1r.pdb $ATTRACTDIR/../attract.par 10.0 12.0 receptorgrid.grid --alphabet receptorgrid.alphabet
 
+fi ### move to disable parts of the protocol
+
+if [ 1 -eq 0 ]; then ### move and change to disable parts of the protocol
 echo '**************************************************************'
 echo 'Docking'
 echo '**************************************************************'
@@ -64,12 +67,27 @@ date > TIME_CONTROL
 echo '**************************************************************'
 echo '1st minimization'
 echo '**************************************************************'
-python $ATTRACTDIR/../protocols/attract.py systsearch-ens1-ens2.dat $params $gridparams --mc --mcmax 2000 --mcensprob 1 --mctemp 0.8 --mcscalerot 1 --mcscalecenter 0.1  --gravity 2 --ub 54.4  --rstk 0.02 $parals  --output out_$name.datd
-ate >> TIME_CONTROL
+$ATTRACTDIR/shm-grid receptorgrid.grid receptorgrid.gridheader
+
+python $ATTRACTDIR/../protocols/attract.py systsearch-ens1-ens2.dat $params $gridparams --mc --mcmax 2000 --mcensprob 1 --mctemp 0.8 --mcscalerot 1 --mcscalecenter 0.1  --gravity 2 --ub 54.4  --rstk 0.02 $parals  --output out_$name.dat
+date >> TIME_CONTROL
+
+$ATTRACTDIR/shm-clean
+
+fi ### move to disable parts of the protocol
+
+if [ 1 -eq 1 ]; then ### move and change to disable parts of the protocol
 echo '**************************************************************'
 echo 'Final rescoring'
 echo '**************************************************************'
-python $ATTRACTDIR/../protocols/attract.py out_$name.dat $scoreparams --rcut 50.0 $parals --output out_$name.score
+#python $ATTRACTDIR/../protocols/attract.py out_$name.dat $scoreparams --rcut 50.0 $parals --output out_$name.score
+$ATTRACTDIR/shm-grid receptorgrid.grid receptorgrid.gridheader
+python $ATTRACTDIR/../protocols/attract.py out_$name.dat $scoreparams $gridparams $parals --output out_$name.grid.score
+$ATTRACTDIR/shm-clean
+
+fi ### move to disable parts of the protocol
+
+if [ 1 -eq 0 ]; then ### move and change to disable parts of the protocol
      
 echo '**************************************************************'
 echo 'Merge the scores with the structures'
@@ -116,6 +134,7 @@ echo '**************************************************************'
 python $ATTRACTDIR/fnat.py out_$name.dat 5 partner1-ensemble/model-1-heavy.pdb refe-rmsd-1.pdb partner2-ensemble/model-1-heavy.pdb refe-rmsd-2.pdb --ens 1 partner1-ensemble-aa-rmsd.list --ens 2 partner2-ensemble-aa-rmsd.list > out_$name.fnat
 #ln -s out_$name-sorted-dr.fnat result.fnat
 
+fi ### move to disable parts of the protocol
+
 $ATTRACTDIR/shm-clean
 
-fi ### move to disable parts of the protocol

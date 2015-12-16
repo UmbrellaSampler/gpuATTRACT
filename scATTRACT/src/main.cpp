@@ -70,6 +70,7 @@ int main (int argc, char *argv[]) {
 	string gridName;
 	string paramsName;
 	string dofName;
+	string recGridAlphabetName;
 
 
 	/* optional variables */
@@ -100,6 +101,7 @@ int main (int argc, char *argv[]) {
 		TCLAP::ValueArg<string> ligArg("l","ligand-list","list of pdb-files of ligand file names. (Default: partner2-ensemble.list)", false,"partner2-ensemble.list","*.list", cmd);
 		TCLAP::ValueArg<string> gridArg("g","grid","Receptor grid file. (Default: receptorgrid.grid)",false, "receptorgrid.grid","*.grid", cmd);
 		TCLAP::ValueArg<string> paramArg("p","par","Attract parameter file. (Default: attract.par)",false,"attract.par","*.par", cmd);
+		TCLAP::ValueArg<string> gridAlphabet("a","receptor-alphabet","Receptor grid alphabet file.",false,"","*.alphabet", cmd);
 
 		TCLAP::ValueArg<int> cpusArg("c","cpus","Number of CPU threads to be used. (Default: 0)", false, 0, "int", cmd);
 
@@ -129,6 +131,7 @@ int main (int argc, char *argv[]) {
 		maxItemsPerSubmit = maxItemsArg.getValue();
 		numToConsider = num2ConsiderArg.getValue();
 		whichToTrack = which2TrackArg.getValue();
+		recGridAlphabetName = gridAlphabet.getValue();
 
 	} catch (TCLAP::ArgException &e){
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
@@ -139,6 +142,7 @@ int main (int argc, char *argv[]) {
 	log->info() << "gridName=" << gridName 		<< endl;
 	log->info() << "parName=" << paramsName 	<< endl;
 	log->info() << "dofName=" << dofName	 	<< endl;
+	log->info() << "recGridAlphabetName=" << recGridAlphabetName << endl;
 	log->info() << "numCPUs=" << numCPUs 		<< endl;
 	log->info() << "devices=[ "; for (auto device : devices) *log << device << " "; *log << "]"<<  endl;
 	log->info() << "chunkSize=" << chunkSize 	<< endl;
@@ -225,14 +229,14 @@ int main (int argc, char *argv[]) {
 	server.addParamTable(paramsName);
 
 	//DEBUG
-	for (auto id : recIds) {
-		cout << id << " ";
-	}
-	cout << endl;
-	for (auto id : ligIds) {
-		cout << id << " ";
-	}
-	cout << endl;
+//	for (auto id : recIds) {
+//		cout << id << " ";
+//	}
+//	cout << endl;
+//	for (auto id : ligIds) {
+//		cout << id << " ";
+//	}
+//	cout << endl;
 
 //	server.getProtein(recIds)->print();
 
@@ -257,6 +261,16 @@ int main (int argc, char *argv[]) {
 			server.getProtein(ligId)->pivotize(pivots[1]);
 		}
 	}
+
+	/* apply receptor grid mapping for ligands */
+	if (!recGridAlphabetName.empty()) {
+		std::vector<unsigned> mapVec = asDB::readGridAlphabetFromFile(recGridAlphabetName);
+		as::TypeMap typeMap = as::createTypeMapFromVector(mapVec);
+		for(auto ligId: ligIds) {
+			server.getProtein(ligId)->applyMapping(typeMap, gridId);
+		}
+	}
+
 
 //	server.getProtein(recIds)->print();
 
@@ -306,6 +320,16 @@ int main (int argc, char *argv[]) {
 	as::EnGrad* GPU_enGradBuffer = GPU_enGrad.data();
     as::EnGrad* CPU_enGradBuffer = CPU_enGrad.data();
 
+
+    //DEBUG
+    if (numCPUs > 0 || devices.size() > 0) {
+		if (numCPUs > 0) {
+			printResultsScore(numDofs, dofBuffer, CPU_enGradBuffer);
+		}
+		if (devices.size() > 0) {
+			printResultsScore(numDofs, dofBuffer, GPU_enGradBuffer);
+		}
+	}
 
 	/* Perform calculations */
 	asUtils::Timer timer;
@@ -404,11 +428,9 @@ int main (int argc, char *argv[]) {
 			server.addGPUWorker(deviceId);
 			for (auto recId : recIds) {
 				server.attachProteinToDevice(recId, deviceId);
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 			for (auto ligId : ligIds) {
 				server.attachProteinToDevice(ligId, deviceId);
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 			server.attachGridUnionToDevice(gridId, deviceId);
 			server.attachParamTableToDevice(deviceId);
@@ -496,7 +518,7 @@ int main (int argc, char *argv[]) {
 	}
 
 
-	if (numCPUs > 0 != devices.size() > 0) {
+	if (numCPUs > 0 || devices.size() > 0) {
 		if (numCPUs > 0) {
 			printResultsScore(numDofs, dofBuffer, CPU_enGradBuffer);
 		}
@@ -504,6 +526,9 @@ int main (int argc, char *argv[]) {
 			printResultsScore(numDofs, dofBuffer, GPU_enGradBuffer);
 		}
 	}
+
+	/* remove all data from host and devices */
+	server.removeClient(clientId);
 
 
 

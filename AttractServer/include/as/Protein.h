@@ -24,9 +24,11 @@
 #include <string>
 #include <map>
 #include <algorithm>
+#include <cassert>
 
 #include "as/interface.h"
 #include "asUtils/Vec3.h"
+#include "as/TypeMap.h"
 
 
 namespace as {
@@ -83,6 +85,10 @@ public:
 
 	unsigned* type() const{
 		return _type;
+	}
+
+	unsigned* mappedTypes(unsigned gridId = 0) const {
+		return _mappedTypes[gridId];
 	}
 
 	float* xModes() const {
@@ -162,9 +168,26 @@ public:
 			maxType = 99;
 		}
 		for (unsigned i = 0; i < _numAtoms; ++i) {
-//			_type[i] = _type[i] == 0 ? 31 : _type[i]-1;
 			_type[i] = _type[i] == maxType ? 0 : _type[i];
 		}
+
+		/* make the mappedTypes the original ones */
+		_mappedTypes.push_back(_type);
+	}
+
+	/* !!! applyDefaultMapping has to be called before */
+	void applyMapping(as::TypeMap& map, unsigned globGridId) {
+		/* The following assertions confirm that there is no concept! (the author) */
+		assert(_mappedTypes.size() == 1);
+		assert(globGridId == 0);
+		_mappedTypes[0] = new unsigned[_numAtoms];
+		for (unsigned i = 0; i < _numAtoms; ++i) {
+			std::cout << _type[i];
+			std::cout << " " << map.getValue(_type[i]) << std::endl;
+			_mappedTypes[globGridId][i] = map.getValue(_type[i]);
+		}
+
+
 	}
 
 	/*
@@ -196,6 +219,7 @@ protected:
 	float *_pos;	/** Cartesian coordinates in cm-frame (pivotized) */
 
 	unsigned* _type; 	/** atom type */
+	std::vector<unsigned*> _mappedTypes; /* for receptor grid mapping */
 	float* _charge;	/** charge of the atoms/particle */
 
 	unsigned _numModes; /** number of modes */
