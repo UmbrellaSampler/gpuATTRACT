@@ -303,6 +303,29 @@ struct EnsDOF_t {
 	}
 };
 
+
+inline std::ostream& operator <<(std::ostream& outStream,
+		const struct EnsDOF_t &dof)
+{
+	using namespace std;
+	int precisionSetting = outStream.precision( );
+	ios::fmtflags flagSettings = outStream.flags();
+	outStream.setf(ios::scientific);
+	outStream.precision(3);
+
+	int w = 13;
+	outStream 	<< setw(w) << "DOF"
+				<< setw(w) << dof.recId << setw(w) << dof.ligId
+				<< setw(w) << dof.ang.x << setw(w) << dof.ang.y << setw(w) << dof.ang.z
+				<< setw(w) << dof.pos.x << setw(w) << dof.pos.y << setw(w) << dof.pos.z;
+
+
+	outStream.precision(precisionSetting);
+	outStream.flags(flagSettings);
+
+	return outStream;
+}
+
 using DOF = EnsDOF_t;
 using EnGrad = ServerResult_t<MAXMODES>;
 

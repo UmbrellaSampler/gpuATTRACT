@@ -281,24 +281,22 @@ int main (int argc, char *argv[]) {
 
 	log->info() << "pivots= "; for (auto pivot : pivots) *log << pivot << ", "; *log << endl;
 
-	if (true){
-		as::GridUnion* grid = server.getGridUnion(gridId);
-		asUtils::Vec3f& pivot = pivots[0];
-		float3 pos;
+	as::GridUnion* grid = server.getGridUnion(gridId);
+	asUtils::Vec3f& pivot = pivots[0];
+	float3 pos;
 
-		pos = grid->innerGrid()->pos();
-		pos.x -= pivot[0]; pos.y -= pivot[1]; pos.z -= pivot[2];
-		grid->innerGrid()->setPos(pos);
-//		as::print(grid->innerGrid(), 0, 0 , 0,0, 25, 30, 25, 30, 25, 30);
+	pos = grid->innerGrid()->pos();
+	pos.x -= pivot[0]; pos.y -= pivot[1]; pos.z -= pivot[2];
+	grid->innerGrid()->setPos(pos);
+//	as::print(grid->innerGrid(), 0, 0 , 0,0, 25, 30, 25, 30, 25, 30);
 
-		pos = grid->outerGrid()->pos();
-		pos.x -= pivot[0]; pos.y -= pivot[1]; pos.z -= pivot[2];
-		grid->outerGrid()->setPos(pos);
+	pos = grid->outerGrid()->pos();
+	pos.x -= pivot[0]; pos.y -= pivot[1]; pos.z -= pivot[2];
+	grid->outerGrid()->setPos(pos);
 
-		pos = grid->NLgrid()->pos();
-		pos.x -= pivot[0]; pos.y -= pivot[1]; pos.z -= pivot[2];
-		grid->NLgrid()->setPos(pos);
-	}
+	pos = grid->NLgrid()->pos();
+	pos.x -= pivot[0]; pos.y -= pivot[1]; pos.z -= pivot[2];
+	grid->NLgrid()->setPos(pos);
 
 //	server.getProtein(recId)->print();
 

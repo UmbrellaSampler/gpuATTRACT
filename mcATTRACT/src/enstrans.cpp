@@ -1,31 +1,60 @@
-#include "state.h"
 #include <cmath>
 #include <iostream>
+#include <vector>
+#include <cassert>
+#include "ensembleWeightTable.h"
 
-extern CartState &cartstate_get(int handle);
 
-void calc_ensw(CartState &cs, int lig) {
-  int nrens =  cs.nrens[lig];
+EnsembleWeightTable EnsembleWeightTable::globTable;
 
-  double **ensw = new double *[nrens];
-  double **rmsds = new double *[nrens];
+
+void calc_ensw(int ensembleId) {
+  int nrens =  EnsembleWeightTable::globTable.getEnsembleSize(ensembleId);
+
+  double **& ensw = EnsembleWeightTable::globTable.getEnsembleWeights(ensembleId);
+  ensw = new double* [nrens];
+
+  double rmsds[nrens][nrens];
+
   int n;
   for (n = 0; n < nrens; n++) {
     ensw[n] = new double[nrens];
   }
-  for (n = 0; n < nrens; n++) {
-    rmsds[n] = new double[nrens];
-  }
 
-  int atomsize = cs.ieins[lig];
-  if (lig > 0) atomsize -= cs.ieins[lig-1];
+  /* new: precalulate ensemble difference table */
+  int atomsize = EnsembleWeightTable::globTable.proteinSize(ensembleId, 0);
+  double ensd[nrens][3*atomsize];
+  {
+  	double* ensd0 = ensd[0];
+	int ensembleSize = EnsembleWeightTable::globTable.getEnsembleSize(ensembleId);
+	int numAtoms = EnsembleWeightTable::globTable.proteinSize(ensembleId, 0);
+
+	for (int i = 0; i < 3*numAtoms; ++i) {
+		ensd0[i] = 0.0;
+	}
+
+	float* x0 = EnsembleWeightTable::globTable.proteinPosX(ensembleId, 0);
+	float* y0 = EnsembleWeightTable::globTable.proteinPosY(ensembleId, 0);
+	float* z0 = EnsembleWeightTable::globTable.proteinPosZ(ensembleId, 0);
+	for (int n = 1; n < ensembleSize; ++n) {
+		double* ensd1 = ensd[n];
+		float* x1 = EnsembleWeightTable::globTable.proteinPosX(ensembleId, n);
+		float* y1 = EnsembleWeightTable::globTable.proteinPosY(ensembleId, n);
+		float* z1 = EnsembleWeightTable::globTable.proteinPosZ(ensembleId, n);
+		for (int i = 0; i < numAtoms; ++i) {
+			ensd1[i*3 + 0] = x0[i] - x1[i];
+			ensd1[i*3 + 1] = y0[i] - y1[i];
+			ensd1[i*3 + 2] = z0[i] - z1[i];
+		}
+	}
+  }
 
   for (n = 0; n < nrens; n++) {
     //    ensw[n][n] = 1.0; // 0 RMSD = 1 / (0+1.0)
     rmsds[n][n] = 0;
-    double *ensd1 = cs.ensd[lig][n];
+    double *ensd1 = ensd[n];
     for (int nn = n+1; nn < nrens; nn++) {
-      double *ensd2 = cs.ensd[lig][nn];
+      double *ensd2 = ensd[nn];
       double sd = 0;
       for (int i = 0; i < atomsize; i++) {
         double dx = ensd1[3*i]-ensd2[3*i];
@@ -62,21 +91,18 @@ void calc_ensw(CartState &cs, int lig) {
       double weight = 1./(rmsds[n][nn]+1);
       ensw[n][nn] = weight; //1.0/(rmsds[n][nn]+0.0001);
       ensw[nn][n] = weight;
-      //      printf("lig[%d] ensw[%d][%d]=%.3f",lig,n,nn,weight);
-      //      std::cout << "lig = " << lig << " ensw[ " << n << " ][ " << nn << " ] = " << weight << std::endl;
+//            printf("lig[%d] ensw[%d][%d]=%.3f",ensembleId,n,nn,weight);
+//            std::cout << "lig = " << ensembleId << " ensw[ " << n << " ][ " << nn << " ] = " << weight << std::endl;
     }
   }
 
-
-  cs.ensw[lig] = ensw;
 }
 
 extern "C" void enstrans_(const int &cartstatehandle, const int &lig, const int &curr, const double &rand, int &ret) {
-  CartState &cs = cartstate_get(cartstatehandle);
-  if (cs.ensw[lig] == NULL) calc_ensw(cs, lig);
 
-  double **ensw = cs.ensw[lig];
-  int nrens = cs.nrens[lig];
+  int nrens =  EnsembleWeightTable::globTable.getEnsembleSize(lig);
+  double** ensw = EnsembleWeightTable::globTable.getEnsembleWeights(lig);
+
   double enswsum = 0;
   for (int n = 0; n < nrens; n++) {
     enswsum += ensw[curr-1][n];

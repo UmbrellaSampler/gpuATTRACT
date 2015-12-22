@@ -19,14 +19,12 @@ BINARY = $(NAME)
 TARGET ?= RELEASE
 
 SOURCES_CPP = $(shell find $(CURDIR)/../src/ -name "*.cpp")
-
-#OBJECTS_CPP = $(SOURCES_CPP:.cpp=.o)
-#OBJS_CPP = $(notdir $(OBJECTS_CPP))
 OBJECTS_CPP = $(addprefix $(OBJDIR)/, $(notdir $(SOURCES_CPP:.cpp=.o)))
 
-#OBJECTS_CU = $(SOURCES_CU:.cu=.o)
+SOURCES_F = $(shell find $(CURDIR)/../src/ -name "*.f")
+OBJECTS_F = $(addprefix $(OBJDIR)/, $(notdir $(SOURCES_F:.f=.o)))
 
-OBJECTS = $(OBJECTS_CPP)
+OBJECTS = $(OBJECTS_CPP) $(OBJECTS_F)
 
 ASDIR = ../../AttractServer
 INCLUDES = -I../src -I$(CUDADIR)/include -I$(ASDIR)/include
@@ -34,16 +32,22 @@ INCLUDES = -I../src -I$(CUDADIR)/include -I$(ASDIR)/include
 # AttractServer 
 CXX = g++
 ifeq ($(TARGET), RELEASE)
-	OFLAGS = -O3 -DNDEBUG
+	CXX_OFLAGS = -O3 -DNDEBUG
+	FXX_OFLAGS = -O2 
 else ifeq ($(TARGET), DEBUG) 
-	OFLAGS = -O0 -g -Wall -Wextra
+	CXX_OFLAGS = -O0 -g -Wall -Wextra
+	FXX_OFLAGS = -O0 -g -Wall -Wextra
 else
-	OFLAGS =
-endif	
-CXXFLAGS =  $(OFLAGS) -std=c++11 -fmessage-length=0
+	CXX_OFLAGS =
+	FXX_OFLAGS = 
+endif
+CXXFLAGS =  $(CXX_OFLAGS) -std=c++11 -fmessage-length=0
  
 LDFLAGS = -L$(ASDIR)/lib -L$(CUDADIR)/lib64 
-LIBS = -lnvToolsExt -lcudart -lAttractServer
+LIBS = -lnvToolsExt -lcudart -lAttractServer -lgfortran
+
+FXX = gfortran
+FXXFLAGS = $(FXX_OFLAGS) -fcray-pointer
 
 # search directories for source files
 VPATH = $(shell find ../src/ -type d)
@@ -58,7 +62,7 @@ $(BINARY): $(OBJECTS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
-$(OBJECTS): $(OBJDIR)/%.o: %.cpp $(OBJDIR)/%.d
+$(OBJECTS_CPP): $(OBJDIR)/%.o: %.cpp $(OBJDIR)/%.d
 	@echo 'Building file: "$<"'
 	@echo 'Invoking: GCC C++ Compiler'
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -o "$@" "$<"
@@ -67,6 +71,13 @@ $(OBJECTS): $(OBJDIR)/%.o: %.cpp $(OBJDIR)/%.d
 
 $(OBJDIR)/%.d: ;	
 	
+	
+$(OBJECTS_F): $(OBJDIR)/%.o: %.f
+	@echo 'Building file: "$<"'
+	@echo 'Invoking: GCC Fortran Compiler'
+	$(FXX) $(FXXFLAGS) -c -o "$@" "$<"
+	@echo 'Finished building: "$<"'
+	@echo ' '	
 
 -include $(OBJECTS:.o=.d)
 	
