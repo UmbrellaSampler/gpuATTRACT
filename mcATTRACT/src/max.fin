@@ -2,10 +2,10 @@
       integer, parameter :: maxres = 3000
       integer, parameter :: totmaxatom = 100000
       integer, parameter :: totmaxres = 10000
-      integer, parameter :: maxlig = 100
+      integer, parameter :: maxlig = 2
       integer, parameter :: maxmode = 10
       integer, parameter :: maxmolpair = 2000000
-      integer, parameter :: maxdof = 1070
+      integer, parameter :: maxdof = 10
       integer, parameter :: maxatomtypes = 99
       integer, parameter :: maxselection = 5000
       integer, parameter :: maxens = 3000

@@ -106,7 +106,9 @@ int main (int argc, char *argv[]) {
 
 		TCLAP::ValueArg<int> cpusArg("c","cpus","Number of CPU threads to be used. (Default: 0)", false, 0, "int", cmd);
 
+
 		int numDevicesAvailable; cudaGetDeviceCount(&numDevicesAvailable);
+//		numDevicesAvailable = 0;
 		vector<int> allowedValues(numDevicesAvailable); iota(allowedValues.begin(), allowedValues.end(), 0);
 		TCLAP::ValuesConstraint<int> vc(allowedValues);
 		TCLAP::MultiArg<int> deviceArg("d","device","Device ID of GPU to be used.", false, &vc, cmd);
@@ -245,7 +247,7 @@ int main (int argc, char *argv[]) {
 
 	if(autoPivot) {
 		if (!pivots.empty()) {
-			log->error() << "Auto pivot specified, but explicitly definined pivots available. (File "<< dofName << ")" << endl;
+			log->error() << "Auto pivot specified, but explicitly defined pivots available. (File "<< dofName << ")" << endl;
 			exit(EXIT_FAILURE);
 		}
 
@@ -254,7 +256,7 @@ int main (int argc, char *argv[]) {
 
 	} else {
 		if (pivots.size() != 2) {
-			log->error() << "No auto pivot specified, but number of definined pivots is incorrect. (File "<< dofName << ")" << endl;
+			log->error() << "No auto pivot specified, but number of defined pivots is incorrect. (File "<< dofName << ")" << endl;
 			exit(EXIT_FAILURE);
 		}
 		for(auto recId: recIds) {
@@ -274,10 +276,17 @@ int main (int argc, char *argv[]) {
 			as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->type());
 			as::applyMapping(typeMap, prot->numAtoms(), prot->type(), prot->mappedTypes());
 		}
+	} else {
+		log->warning() << "No grid alphabet specified. Applying default mapping." << endl;
+		for(auto ligId: ligIds) {
+			as::Protein* prot = server.getProtein(ligId);
+			as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->type());
+			as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->mappedTypes());
+		}
 	}
 
 
-//	server.getProtein(recIds)->print();
+//	server.getProtein(recIds[0])->print();
 
 	log->info() << "pivots= "; for (auto pivot : pivots) *log << pivot << ", "; *log << endl;
 
@@ -398,7 +407,6 @@ int main (int argc, char *argv[]) {
 		while ((server.pullRequest(reqIds[1], CPU_enGradBuffer + (numSubmitIter-1)*strucPerSubmit) != as::Dispatcher::ready) && count++ < wait_ms) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		}
-
 		asUtils::getTimerAndPrint(&timer, "CPU");
 
 		if (count >= wait_ms) {

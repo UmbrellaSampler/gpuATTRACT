@@ -194,9 +194,9 @@ public:
 		if (_msg_log_level <= _log_level && _do_output) {
 			// check if _log_stream == stderr
 			bool isstderr = _log_stream->rdbuf() == std::cerr.rdbuf();
-			if (_msg_log_level <= Error && !isstderr) {
+			if (_msg_log_level <= Warning && !isstderr) {
 				// write to stderr if error occurred and _log_stream is not stderr.
-				std::cerr << "Logger: An error occurred. See logfile: "<< _filename << std::endl;
+				std::cerr << "Logger: A WARNING or an ERROR occurred. See logfile: "<< _filename << std::endl;
 			}
 
 			// Include timestamp

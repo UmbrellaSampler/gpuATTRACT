@@ -68,13 +68,14 @@ static double cumulativeSamplingWeights[3] = {10.0, 5.0, 5.0};
 static int ensembleSizes[2];
 static double ub;
 static double k;
+static double dseed;
 
 extern "C" void mc_ensemble_move_(int const& cartstatehandle, int const& nlig, int const& fixre,
 		int const& iori,int const& itra, int* ens, int* nrens,
 		double const& ensprob,
 		double* phi, double* ssi, double* rot, double*xa, double* ya, double* za,
 		double const& scalecenter,double const& scalerot,
-		double* cumu_sws, int& mover, double const& dseed);
+		double* cumu_sws, int& mover, double& dseed);
 
 //      nlig: number of binding partners, it is 2 in 2-body docking
 //      fixre: if receptor is fixed
@@ -96,7 +97,7 @@ inline void randomStep (const as::DOF& oldDOF, as::DOF& newDOF)
 	constexpr int fixre = 1;
 	constexpr int iori = 1;
 	constexpr int itra = 1;
-	int ens[nlig] = {oldDOF.recId, oldDOF.ligId};
+	int ens[nlig] = {oldDOF.recId + 1, oldDOF.ligId - (ensembleSizes[0] - 1)};
 	int nrens[nlig] = {ensembleSizes[0], ensembleSizes[1]};
 	double ensprob = probApplyEnsembleMove;
 	double phi[nlig] = {0.0, oldDOF.ang.x};
@@ -109,11 +110,9 @@ inline void randomStep (const as::DOF& oldDOF, as::DOF& newDOF)
 	double scalerot = maxAng;
 	double* cumu_sws = cumulativeSamplingWeights;
 	int mover = 0;
-	constexpr double dseed = 12345.0;
 
-
-	cout << "OLD" << endl;
-	cout << oldDOF << endl;
+//	cout << "OLD" << endl;
+//	cout << oldDOF << endl;
 
 	mc_ensemble_move_(cartstatehandle, nlig, fixre, iori, itra, ens,
 			nrens, ensprob, phi, ssi, rot, xa, ya, za,
@@ -128,11 +127,11 @@ inline void randomStep (const as::DOF& oldDOF, as::DOF& newDOF)
 	newDOF.pos.x = xa[1];
 	newDOF.pos.y = ya[1];
 	newDOF.pos.z = za[1];
-	newDOF.recId = ens[0];
-	newDOF.ligId = ens[1];
+	newDOF.recId = ens[0] - 1;
+	newDOF.ligId = ens[1] + (ensembleSizes[0] - 1);
 
-	cout << "NEW" << endl;
-	cout << newDOF << endl;
+//	cout << "NEW" << endl;
+//	cout << newDOF << endl;
 
 }
 
@@ -153,25 +152,27 @@ void MC_accept(as::DOF& oldDOF, as::EnGrad& oldEnGrad, as::DOF &newDOF, as::EnGr
 	float newEnergy = newEnGrad.E_El + newEnGrad.E_VdW;
 	float oldEnergy = oldEnGrad.E_El + oldEnGrad.E_VdW;
 
-//	bool accepted = false;
 	/* Metropolis Criterion */
 	if (newEnergy <= oldEnergy) {
 		oldEnGrad = newEnGrad;
 		oldDOF = newDOF;
-//		accepted = true;
+//		cout << oldEnGrad.E_El + oldEnGrad.E_VdW << endl;
 	} else {
 		double r = distribution(generator);
 		if (r < std::exp(-(newEnergy - oldEnergy)/kT)) {
 			oldEnGrad = newEnGrad;
 			oldDOF = newDOF;
-//			accepted = true;
+//			cout << oldEnGrad.E_El + oldEnGrad.E_VdW << " by luck"<< endl;
+		}
+		else {
+//			cout << oldEnGrad.E_El + oldEnGrad.E_VdW << " not accepted" << endl;
 		}
 	}
 
-//	int numdis = 20;
 //	static int count = 0;
-//	if (++count < numdis) {
-//		std::cout << "accepted=" << accepted << " newE="<< newEnergy << " oldE=" << oldEnergy << std::endl;
+//	count++;
+//	if (count % 2 == 0) {
+//		cout << endl;
 //	}
 }
 
@@ -277,8 +278,10 @@ int main (int argc, char *argv[]) {
 		TCLAP::MultiArg<double> samplingWeightsArg("w","samplingWeight","Sampling weights for Monte Carlo move. (Default: 10 5 5)", false,"double", cmd);
 		TCLAP::ValueArg<double> ubArg("","ub","Restraint distance. (Default: 100); ", false, 100.0, "double", cmd);
 		TCLAP::ValueArg<double> kArg("","rstk","Force constant for restraints. (Default: 0.02); ", false, 0.02, "double", cmd);
+		TCLAP::ValueArg<double> seedArg("","seed","Random number generator seed. (Default: 12345.0); ", false, 12345.0, "double", cmd);
 
 		int numDevicesAvailable; cudaVerify(cudaGetDeviceCount(&numDevicesAvailable));
+//		numDevicesAvailable = 0;
 		vector<int> allowedValues(numDevicesAvailable); iota(allowedValues.begin(), allowedValues.end(), 0);
 		TCLAP::ValuesConstraint<int> vc(allowedValues);
 		TCLAP::MultiArg<int> deviceArg("d","device","Device ID of serverMode to be used.", false, &vc);
@@ -314,6 +317,7 @@ int main (int argc, char *argv[]) {
 		samplingWeights = samplingWeightsArg.getValue();
 		ub = ubArg.getValue();
 		k = kArg.getValue();
+		dseed = seedArg.getValue();
 
 
 	} catch (TCLAP::ArgException &e){
@@ -340,6 +344,16 @@ int main (int argc, char *argv[]) {
 	/* convert degrees to rad */
 	maxAng = maxAng * M_PI / 180.0;
 
+//	do i=1,maxmover
+//         sws = sws+cumu_sws(i)
+//      enddo
+//      cumu_sws(1) = cumu_sws(1)/sws
+//      do i=2,maxmover
+//         cumu_sws(i) = cumu_sws(i-1)+cumu_sws(i)/sws
+//      enddo
+
+
+
 	/* check if cpu or gpu is used */
 	as::Request::useMode_t serverMode = as::Request::unspecified;
 	if(numCPUs > 0) {
@@ -351,10 +365,23 @@ int main (int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	for(int i = 0; i < std::min(int(samplingWeights.size()), int(3)); ++i) {
-		cumulativeSamplingWeights[i] = samplingWeights[i];
+	/* convert cumulative weights */
+	{
+		double sum = 0;
+		for(int i = 0; i < 3; ++i) {
+			sum += samplingWeights[i];
+		}
+		cumulativeSamplingWeights[0] = samplingWeights[0]/sum;
+		for (int i = 1; i < 3; ++i) {
+			cumulativeSamplingWeights[i] = cumulativeSamplingWeights[i-1] + samplingWeights[i]/sum;
+		}
+		log->info() << "samplingWeigths=[ ";
+		for (int i=0; i<3;++i) *log << samplingWeights[i] << " "; *log << "]";
+		*log << " --> ";
+		for (int i=0; i<3;++i) *log << cumulativeSamplingWeights[i] << " "; *log << "]" << endl;
 	}
-	log->info() << "samplingWeigths=[ "; for (int i=0; i<3;++i) *log << cumulativeSamplingWeights[i] << " "; *log << "]"<<  endl;
+
+
 
 
 	/* read dof header */
@@ -454,6 +481,13 @@ int main (int argc, char *argv[]) {
 			as::Protein* prot = server.getProtein(ligId);
 			as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->type());
 			as::applyMapping(typeMap, prot->numAtoms(), prot->type(), prot->mappedTypes());
+		}
+	} else {
+		log->warning() << "No grid alphabet specified. Applying default mapping." << endl;
+		for(auto ligId: ligIds) {
+			as::Protein* prot = server.getProtein(ligId);
+			as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->type());
+			as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->mappedTypes());
 		}
 	}
 

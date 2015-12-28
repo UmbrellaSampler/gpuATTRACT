@@ -106,19 +106,19 @@ extern "C" void enstrans_(const int &cartstatehandle, const int &lig, const int 
   double enswsum = 0;
   for (int n = 0; n < nrens; n++) {
     enswsum += ensw[curr-1][n];
-    //    printf("lig = %d, ensw[%d][%d] = %f\n",lig, curr-1, n, ensw[curr-1][n]);
+//        printf("lig = %d, ensw[%d][%d] = %f\n",lig, curr-1, n, ensw[curr-1][n]);
   }
 
   double accum = 0;
   for (int n = 0; n < nrens; n++) {
     accum += ensw[curr-1][n]/enswsum;
     if (accum > rand) {
-      //printf("ENSTRANS! %d %d %.3f %.3f\n", curr, n+1, accum, rand);
+//      printf("ENSTRANS1! %d %d %.3f %.3f\n", curr, n+1, accum, rand);
       ret = n+1;
       return;
     }
   }
-  //printf("ENSTRANS! %d %d %.3f %.3f\n", curr, nrens, 1.0, rand);
+//  printf("ENSTRANS2! %d %d %.3f %.3f\n", curr, nrens, 1.0, rand);
   ret = nrens;
   return;
 

@@ -184,6 +184,9 @@ __global__ void asCore::d_NLPotForce(const unsigned gridId,
 				as::DOF dof = dofs[DOFidx];
 				const unsigned RecId = dof.recId;
 
+				float3 fAcc = {0.0, 0.0, 0.0};
+				float eVdWAcc = 0;
+				float eElAcc = 0;
 				for (unsigned j = 0; j < nDesc.x; ++j) {
 					const unsigned nIdx = c_Grids[gridId].NL.neighborList[nDesc.y + j];
 
@@ -208,10 +211,7 @@ __global__ void asCore::d_NLPotForce(const unsigned gridId,
 					dz *= dr2_inv;
 
 					float3 fVdW;
-					float3 fAcc = {0.0, 0.0, 0.0};
 					float eVdW;
-					float eVdWAcc = 0;
-					float eElAcc = 0;
 
 					const size_t atomTypeRec = c_Proteins[RecIdFirst].type[nIdx];
 
@@ -222,7 +222,6 @@ __global__ void asCore::d_NLPotForce(const unsigned gridId,
 //						swi = calcSwi(dr2, c_SimParam.swiOn, c_SimParam.swiOff);
 //						swiPlateau = calcSwi(grid->dPlateau2(), c_SimParam.swiOn, c_SimParam.swiOff);
 //					}
-
 
 					// calculate energy and potential/energy of LJ/VdW potential
 
@@ -291,16 +290,15 @@ __global__ void asCore::d_NLPotForce(const unsigned gridId,
 
 					}
 
+				}
 
-					/* store results back to global memory */
-					/* ToDo: Check if it is faster to put the memory request out of the for loop scope
-					 * with a check if nDesc.x > 0 */
+				/* store results back to global memory */
+				if (nDesc.x > 0) {
 					outLig_fx[i] += fAcc.x;
 					outLig_fy[i] += fAcc.y;
 					outLig_fz[i] += fAcc.z;
 					outLigand_eEl[i] += eElAcc;
 					outLigand_eVdW[i] += eVdWAcc;
-
 				}
 			}
 		} // if (atomtype != 0)
@@ -407,6 +405,10 @@ void asCore::h_NLPotForce(const as::NLGrid *grid,
 //				}
 
 				// calculate energy and potential/energy of LJ/VdW potential
+				assert(atomTypeRec > 0);
+				assert(atomTypeRec < 99);
+				assert(atomTypeLig > 0);
+				assert(atomTypeLig < 99);
 				LJPotForce(dr2, dr2_inv, dx, dy, dz,
 						table->getParams(atomTypeRec-1, atomTypeLig-1),
 						swi, table->potShape(),

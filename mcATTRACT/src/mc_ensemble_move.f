@@ -32,11 +32,41 @@ C$$$      dseed: random number seed, it is neccessary to maintail the dseed in t
       dimension xa(maxlig),ya(maxlig),za(maxlig)
       dimension cumu_sws(maxmover),rr(maxdof)
 
+!      write(*,*) "ens:       ", ens
+!      write(*,*) "nlig       ", nlig
+!      write(*,*) "fixre      ", fixre
+!      write(*,*) "iori       ", iori
+!      write(*,*) "nrens      ", nrens
+!      write(*,*) "ensprob    ", ensprob
+!      write(*,*) "phi        ", phi
+!      write(*,*) "ssi        ", ssi
+!      write(*,*) "rot        ", rot
+!      write(*,*) "xa         ", xa
+!      write(*,*) "ya         ", ya
+!      write(*,*) "za         ", za
+!      write(*,*) "fixre      ", fixre
+!      write(*,*) "scalerot   ", scalerot
+!      write(*,*) "scalecenter", scalecenter
+!      write(*,*) "cumu_sws   ", cumu_sws
+!      write(*,*) "mover      ", mover
+!      write(*,*) "dseed      ", dseed
+!      write(*,*) ""
+
+c      cartstatehandle,nlig,fixre,
+c      iori,itra,ens,nrens,ensprob,phi,ssi,rot,xa,ya,za,
+c      scalecenter,scalerot,cumu_sws,mover,dseed
 C$$$      dseed=12345
 
       jl=3*iori*(nlig-fixre)
       call GGUBS(dseed,2,rr)
+
+!      write(*,*) "rr         ", rr(1), rr(2)
+
       call random_mover(rr(1),cumu_sws,mover,maxmover)
+
+!      write(*,*) "mover a. rm", mover
+!      write(*,*) ""
+
       if (mover.eq.1 .or. mover.eq.3 .or. ensprob.eq.0) then
          call rigid_body_mover(nlig,jl,iori,itra,phi,ssi,rot,xa,ya,za,
      1        fixre,scalerot,scalecenter,dseed)
