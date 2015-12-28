@@ -1,0 +1,43 @@
+DESCRIPTION
+This package contains
+	1.) Attract-Scoring-Server-library
+	  	A (shared) library for Scoring calculations on the CPU and GPU. 
+ 	2.) scATTRACT
+	  	Client that performs scoring. It uses the Attract-Server-library. 
+	3.) mcATTRACT
+	  	Client that performs a Monte-Carlo search. It uses the Attract-Server-library.
+	4.) emATTRACT (does not work in mcEnsemble branch)
+	  	Client that performs a energy minimization by various applicable optimization techniques. It uses the Attract-Server-library.
+
+INSTALLATION
+	
+Pre-installation steps:
+	Install the cuda-toolkit of version >= 6.5 (we have 6.5).
+		Make sure that the following environment variables are set:
+		
+		export CUDADIR=path/to/cuda-toolkit #e.g. /usr/local/cuda 
+		export PATH=$CUDADIR/bin:$PATH
+		export LD_LIBRARY_PATH=$CUDADIR/lib64
+	
+
+Installation of package:
+	Build the package using the makefile in the root directory (gpuATTRACT).
+
+		e.g.
+		Build all binaries in RELEASE (default) mode:	
+			make (-j#) "or" make TARGET=RELEASE (-j#)
+	
+		Compile the mcClient in DEBUG mode:
+			make mc TARGET=DEBUG (-j#)
+
+		For more information type
+			make help
+
+	To enable runtime library binding:
+	
+	Soft links to the target executables and library is placed in gpuATTRACT/bin/ .
+	In order to use executables in scripts/cmd-line:
+
+		export ASDIR=your_path/gpuATTRACT/bin
+		export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ASDIR
+
