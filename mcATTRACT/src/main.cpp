@@ -68,7 +68,7 @@ static double maxDist;
 static double maxAng;
 static double kT;
 static double probApplyEnsembleMove;
-static double cumulativeSamplingWeights[3] = {5.0, 5.0, 10.0};
+static double cumulativeSamplingWeights[3];
 static int ensembleSizes[2];
 static double ub;
 static double k;
@@ -261,6 +261,7 @@ int main (int argc, char *argv[]) {
 
 	int numToConsider;
 	int whichToTrack;
+	bool beSilent;
 #ifdef _OPENMP
 	unsigned numOMPThreads;
 #endif
@@ -294,7 +295,9 @@ int main (int argc, char *argv[]) {
 		TCLAP::ValueArg<double> maxAngArg("","maxAng","Maximum rotational displacement (deg). (Default: 3.0deg)", false, 3.0, "int", cmd);
 		TCLAP::ValueArg<double> kTArg("","kT","Monte Carlo temperature. (Default: 10.0)", false, 10.0, "double", cmd);
 		TCLAP::ValueArg<double> probEnsembleMoveArg("","ensProb","Probability of ensemble move. (Default: 1.0)", false, 1.0, "double", cmd);
+
 		TCLAP::MultiArg<double> samplingWeightsArg("w","samplingWeight","Sampling weights for Monte Carlo move. (Default: 5 5 10)", false,"double", cmd);
+
 		TCLAP::ValueArg<double> ubArg("","ub","Restraint distance. (Default: 100); ", false, 100.0, "double", cmd);
 		TCLAP::ValueArg<double> kArg("","rstk","Force constant for restraints. (Default: 0.02); ", false, 0.02, "double", cmd);
 		TCLAP::ValueArg<unsigned> seedArg("","seed","Random number generator seed. (Default: 1); ", false, 1, "uint", cmd);
@@ -308,6 +311,7 @@ int main (int argc, char *argv[]) {
 
 		TCLAP::ValueArg<int> num2ConsiderArg("","num", "Number of configurations to consider (1 - num). (Default: All)", false, -1, "int", cmd);
 		TCLAP::ValueArg<int> which2TrackArg("","focusOn", "Condider only this configuration. (Default: -1)", false, -1, "int", cmd);
+		TCLAP::SwitchArg silentArg("", "silent","Suppress result output.", cmd);
 
 #ifdef _OPENMP
 		TCLAP::ValueArg<unsigned> numOMPThreadsArg("","ompThreads", "Number of OpenMP threads. (Default: 1)", false, 1, "uint", cmd);
@@ -330,6 +334,7 @@ int main (int argc, char *argv[]) {
 		numToConsider = num2ConsiderArg.getValue();
 		whichToTrack = which2TrackArg.getValue();
 		recGridAlphabetName = gridAlphabet.getValue();
+		beSilent = silentArg.getValue();
 
 
 		numIter		= numIterArg.getValue();
@@ -388,6 +393,13 @@ int main (int argc, char *argv[]) {
 	/* convert cumulative weights */
 	{
 		double sum = 0;
+		if(samplingWeights.size() < 3){
+			const vector<double> defaultWeigths = {5.0, 5.0, 10.0};
+			for (int i = samplingWeights.size(); i < 3; ++i ) {
+				samplingWeights.push_back(defaultWeigths[i]);
+			}
+
+		}
 		for(int i = 0; i < 3; ++i) {
 			sum += samplingWeights[i];
 		}
@@ -397,13 +409,13 @@ int main (int argc, char *argv[]) {
 		}
 		log->info() << "samplingWeigths=[ ";
 		for (int i=0; i<3;++i) *log << samplingWeights[i] << " "; *log << "]";
-		*log << " --> ";
+		*log << " --> [ ";
 		for (int i=0; i<3;++i) *log << cumulativeSamplingWeights[i] << " "; *log << "]" << endl;
 	}
 
 	/* init omp related stuff */
 #ifdef _OPENMP
-	for(int i = 0; i<numOMPThreads; ++i) {
+	for(unsigned i = 0; i < numOMPThreads; ++i) {
 		dseeds.push_back(static_cast<double>(seed + i));
 		RNGs.push_back(mca::default_RNG(seed + numOMPThreads + i));
 	}
@@ -746,7 +758,9 @@ int main (int argc, char *argv[]) {
 	applyInverseIdMapping(DOF_molecules[1], recIds.size());
 
 	/* print results to stderr */
-	printResultsOutput(numDofs, dofBuffer, enGradBuffer, pivots);
+	if(beSilent == false) {
+		printResultsOutput(numDofs, dofBuffer, enGradBuffer, pivots);
+	}
 
 
 	/* remove all data from host and devices */
