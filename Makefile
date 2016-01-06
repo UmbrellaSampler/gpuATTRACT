@@ -20,6 +20,10 @@ mc: as
 	cd mcATTRACT/bin && $(MAKE) TARGET=$(TARGET)
 	cd $(BINDIR) && ln -sf ../mcATTRACT/bin/mcATTRACT
 	
+mc_omp: as
+	cd mcATTRACT/bin && $(MAKE) TARGET=$(TARGET) OMP=1
+	cd $(BINDIR) && ln -sf ../mcATTRACT/bin/mcATTRACT
+	
 sc: as
 	cd scATTRACT/bin && $(MAKE) TARGET=$(TARGET)
 	cd $(BINDIR) && ln -sf ../scATTRACT/bin/scATTRACT

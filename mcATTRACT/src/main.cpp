@@ -28,6 +28,9 @@
 #include <string>
 #include <nvToolsExt.h>
 #include <cuda_runtime.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include <AttractServer>
 #include "asUtils/Logger.h"
@@ -35,6 +38,7 @@
 #include "asUtils/timer.h"
 
 #include "ensembleWeightTable.h"
+#include "RNG.h"
 #include "tclap/CmdLine.h"
 
 using namespace std;
@@ -64,11 +68,12 @@ static double maxDist;
 static double maxAng;
 static double kT;
 static double probApplyEnsembleMove;
-static double cumulativeSamplingWeights[3] = {10.0, 5.0, 5.0};
+static double cumulativeSamplingWeights[3] = {5.0, 5.0, 10.0};
 static int ensembleSizes[2];
 static double ub;
 static double k;
-static double dseed;
+static unsigned seed;
+static vector<double> dseeds;
 
 extern "C" void mc_ensemble_move_(int const& cartstatehandle, int const& nlig, int const& fixre,
 		int const& iori,int const& itra, int* ens, int* nrens,
@@ -111,6 +116,13 @@ inline void randomStep (const as::DOF& oldDOF, as::DOF& newDOF)
 	double* cumu_sws = cumulativeSamplingWeights;
 	int mover = 0;
 
+#ifdef _OPENMP
+	int tid = omp_get_thread_num();
+#else
+	constexpr int tid = 0;
+#endif
+	double& dseed = dseeds[tid];
+
 //	cout << "OLD" << endl;
 //	cout << oldDOF << endl;
 
@@ -148,6 +160,8 @@ inline void applyConstraints(const as::DOF& dof, as::EnGrad& enGrad) {
 static std::default_random_engine generator;
 static std::uniform_real_distribution<double> distribution(0.0, 1.0);
 
+static std::vector<mca::default_RNG> RNGs;
+
 void MC_accept(as::DOF& oldDOF, as::EnGrad& oldEnGrad, as::DOF &newDOF, as::EnGrad& newEnGrad) {
 	float newEnergy = newEnGrad.E_El + newEnGrad.E_VdW;
 	float oldEnergy = oldEnGrad.E_El + oldEnGrad.E_VdW;
@@ -158,7 +172,12 @@ void MC_accept(as::DOF& oldDOF, as::EnGrad& oldEnGrad, as::DOF &newDOF, as::EnGr
 		oldDOF = newDOF;
 //		cout << oldEnGrad.E_El + oldEnGrad.E_VdW << endl;
 	} else {
-		double r = distribution(generator);
+#ifdef _OPENMP
+		int tid = omp_get_thread_num();
+		double r = RNGs[tid]();
+#else
+		double r = RNGs[0]();
+#endif
 		if (r < std::exp(-(newEnergy - oldEnergy)/kT)) {
 			oldEnGrad = newEnGrad;
 			oldDOF = newDOF;
@@ -234,9 +253,6 @@ int main (int argc, char *argv[]) {
 	string recGridAlphabetName;
 
 	/* optional variables */
-//	static double maxDist;
-//	static double maxAng;	They are set as well;
-//	static double kT;
 	unsigned numCPUs;
 	unsigned numIter;
 	unsigned chunkSize;
@@ -245,6 +261,9 @@ int main (int argc, char *argv[]) {
 
 	int numToConsider;
 	int whichToTrack;
+#ifdef _OPENMP
+	unsigned numOMPThreads;
+#endif
 
 	/* catch command line exceptions */
 	try {
@@ -275,10 +294,10 @@ int main (int argc, char *argv[]) {
 		TCLAP::ValueArg<double> maxAngArg("","maxAng","Maximum rotational displacement (deg). (Default: 3.0deg)", false, 3.0, "int", cmd);
 		TCLAP::ValueArg<double> kTArg("","kT","Monte Carlo temperature. (Default: 10.0)", false, 10.0, "double", cmd);
 		TCLAP::ValueArg<double> probEnsembleMoveArg("","ensProb","Probability of ensemble move. (Default: 1.0)", false, 1.0, "double", cmd);
-		TCLAP::MultiArg<double> samplingWeightsArg("w","samplingWeight","Sampling weights for Monte Carlo move. (Default: 10 5 5)", false,"double", cmd);
+		TCLAP::MultiArg<double> samplingWeightsArg("w","samplingWeight","Sampling weights for Monte Carlo move. (Default: 5 5 10)", false,"double", cmd);
 		TCLAP::ValueArg<double> ubArg("","ub","Restraint distance. (Default: 100); ", false, 100.0, "double", cmd);
 		TCLAP::ValueArg<double> kArg("","rstk","Force constant for restraints. (Default: 0.02); ", false, 0.02, "double", cmd);
-		TCLAP::ValueArg<double> seedArg("","seed","Random number generator seed. (Default: 12345.0); ", false, 12345.0, "double", cmd);
+		TCLAP::ValueArg<unsigned> seedArg("","seed","Random number generator seed. (Default: 1); ", false, 1, "uint", cmd);
 
 		int numDevicesAvailable; cudaVerify(cudaGetDeviceCount(&numDevicesAvailable));
 //		numDevicesAvailable = 0;
@@ -289,6 +308,10 @@ int main (int argc, char *argv[]) {
 
 		TCLAP::ValueArg<int> num2ConsiderArg("","num", "Number of configurations to consider (1 - num). (Default: All)", false, -1, "int", cmd);
 		TCLAP::ValueArg<int> which2TrackArg("","focusOn", "Condider only this configuration. (Default: -1)", false, -1, "int", cmd);
+
+#ifdef _OPENMP
+		TCLAP::ValueArg<unsigned> numOMPThreadsArg("","ompThreads", "Number of OpenMP threads. (Default: 1)", false, 1, "uint", cmd);
+#endif
 
 		cmd.xorAdd(cpusArg, deviceArg);
 
@@ -317,7 +340,10 @@ int main (int argc, char *argv[]) {
 		samplingWeights = samplingWeightsArg.getValue();
 		ub = ubArg.getValue();
 		k = kArg.getValue();
-		dseed = seedArg.getValue();
+		seed = seedArg.getValue();
+#ifdef _OPENMP
+		numOMPThreads = numOMPThreadsArg.getValue();
+#endif
 
 
 	} catch (TCLAP::ArgException &e){
@@ -340,19 +366,13 @@ int main (int argc, char *argv[]) {
 	log->info() << "chunkSize=" << chunkSize 	<< endl;
 	log->info() << "numToConsider=" << numToConsider << endl;
 	log->info() << "whichToTrack=" << whichToTrack << endl;
+#ifdef _OPENMP
+	log->info() << "numOMPThreads=" << numOMPThreads << endl;
+#endif
+
 
 	/* convert degrees to rad */
 	maxAng = maxAng * M_PI / 180.0;
-
-//	do i=1,maxmover
-//         sws = sws+cumu_sws(i)
-//      enddo
-//      cumu_sws(1) = cumu_sws(1)/sws
-//      do i=2,maxmover
-//         cumu_sws(i) = cumu_sws(i-1)+cumu_sws(i)/sws
-//      enddo
-
-
 
 	/* check if cpu or gpu is used */
 	as::Request::useMode_t serverMode = as::Request::unspecified;
@@ -381,8 +401,16 @@ int main (int argc, char *argv[]) {
 		for (int i=0; i<3;++i) *log << cumulativeSamplingWeights[i] << " "; *log << "]" << endl;
 	}
 
-
-
+	/* init omp related stuff */
+#ifdef _OPENMP
+	for(int i = 0; i<numOMPThreads; ++i) {
+		dseeds.push_back(static_cast<double>(seed + i));
+		RNGs.push_back(mca::default_RNG(seed + numOMPThreads + i));
+	}
+#else
+	dseeds.push_back(static_cast<double>(seed));
+	RNGs.push_back(mca::default_RNG(seed + 1));
+#endif
 
 	/* read dof header */
 	std::vector<asUtils::Vec3f> pivots;
@@ -594,6 +622,9 @@ int main (int argc, char *argv[]) {
 
 		/* while energy is evaluated by the server, go ahead with calculating new configurations
 		 * for first half of DOF Buffer */
+#ifdef _OPENMP
+		#pragma omp parallel for num_threads(numOMPThreads)
+#endif
 		for(unsigned j = 0; j < DOFSize[idx[0]]; ++j) {
 			const as::DOF& oldDOF = oldDOFs[idx[0]][j];
 			as::DOF& newDOF = newDOFs[idx[0]][j];
@@ -618,6 +649,9 @@ int main (int argc, char *argv[]) {
 		nvtxRangePushA("Waiting");
 		if (i == 0 || i == 1) {
 			asClient::server_pull(server, reqIdsFirstIter[idx[0]], oldEnGrads[idx[0]]);
+#ifdef _OPENMP
+			#pragma omp parallel for num_threads(numOMPThreads)
+#endif
 			for(unsigned j = 0; j < DOFSize[idx[0]]; ++j) {
 				as::DOF& oldDOF = oldDOFs[idx[0]][j];
 				as::EnGrad& oldEnGrad = oldEnGrads[idx[0]][j];
@@ -632,6 +666,9 @@ int main (int argc, char *argv[]) {
 
 		/* Accept new positions according to Metropolis criterion */
 		nvtxRangePushA("Processing");
+#ifdef _OPENMP
+		#pragma omp parallel for num_threads(numOMPThreads)
+#endif
 		for(unsigned j = 0; j < DOFSize[idx[0]]; ++j) {
 			as::DOF& oldDOF = oldDOFs[idx[0]][j];
 			as::EnGrad& oldEnGrad = oldEnGrads[idx[0]][j];
@@ -668,6 +705,9 @@ int main (int argc, char *argv[]) {
 		nvtxRangePushA("Waiting");
 		if (numIter == 1) {
 			asClient::server_pull(server, reqIdsFirstIter[idx[0]], oldEnGrads[idx[0]]);
+#ifdef _OPENMP
+			#pragma omp parallel for num_threads(numOMPThreads)
+#endif
 			for(unsigned j = 0; j < DOFSize[idx[0]]; ++j) {
 				as::DOF& oldDOF = oldDOFs[idx[0]][j];
 				as::EnGrad& oldEnGrad = oldEnGrads[idx[0]][j];
@@ -680,6 +720,9 @@ int main (int argc, char *argv[]) {
 
 		/* Accept new positions according to Metropolis criterion */
 		nvtxRangePushA("Processing");
+#ifdef _OPENMP
+		#pragma omp parallel for num_threads(numOMPThreads)
+#endif
 		for(unsigned j = 0; j < DOFSize[idx[0]]; ++j) {
 			as::DOF& oldDOF = oldDOFs[idx[0]][j];
 			as::EnGrad& oldEnGrad = oldEnGrads[idx[0]][j];

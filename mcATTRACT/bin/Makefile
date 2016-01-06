@@ -18,6 +18,8 @@ BINARY = $(NAME)
 # Each config should at least provide the two targets RELEASE and DEBUG.
 TARGET ?= RELEASE
 
+OMP ?= 0
+
 SOURCES_CPP = $(shell find $(CURDIR)/../src/ -name "*.cpp")
 OBJECTS_CPP = $(addprefix $(OBJDIR)/, $(notdir $(SOURCES_CPP:.cpp=.o)))
 
@@ -33,7 +35,7 @@ INCLUDES = -I../src -I$(CUDADIR)/include -I$(ASDIR)/include
 CXX = g++
 ifeq ($(TARGET), RELEASE)
 	CXX_OFLAGS = -O3 -DNDEBUG
-	FXX_OFLAGS = -O2 
+	FXX_OFLAGS = -O3 
 else ifeq ($(TARGET), DEBUG) 
 	CXX_OFLAGS = -O0 -g -Wall -Wextra
 	FXX_OFLAGS = -O0 -g -Wall -Wextra
@@ -41,10 +43,19 @@ else
 	CXX_OFLAGS =
 	FXX_OFLAGS = 
 endif
-CXXFLAGS =  $(CXX_OFLAGS) -std=c++11 -fmessage-length=0
+
+ifeq ($(OMP),1)
+	OMP_FLAGS = -fopenmp
+	OMP_LIBS = -lgomp
+else
+	OMP_FLAGS =
+	OMP_LIBS =
+endif
+
+CXXFLAGS = $(CXX_OFLAGS) $(OMP_FLAGS) -std=c++11 -fmessage-length=0
  
 LDFLAGS = -L$(ASDIR)/lib -L$(CUDADIR)/lib64 
-LIBS = -lnvToolsExt -lcudart -lAttractServer -lgfortran
+LIBS = -lnvToolsExt -lcudart -lAttractServer -lgfortran $(OMP_LIBS)
 
 FXX = gfortran
 FXXFLAGS = $(FXX_OFLAGS) -fcray-pointer
