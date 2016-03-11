@@ -9,10 +9,10 @@
 !receptor-rmsd.pdb
 !*base_files.tar.gz
 !*.sh
-!*.zip
+!*.py
 
 # But exclude
-clean.sh
+# clean.sh
 
 # ... even if they are in subdirectories
 !*/
