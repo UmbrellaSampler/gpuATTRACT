@@ -423,11 +423,13 @@ void printResultsOutput(unsigned numDofs, as::DOF* dofs, as::EnGrad* enGrads, st
 	cout.setf(ios::showpoint);
 	cout.precision(6);
 
+	asUtils::Vec3f pivot_diff = pivots[0] - pivots[1];
+
 	/* print header */
 	cout << "#pivot 1 " << pivots[0][0] << " " << pivots[0][1] << " " << pivots[0][2] << " " << endl;
 	cout << "#pivot 2 " << pivots[1][0] << " " << pivots[1][1] << " " << pivots[1][2] << " " << endl;
-	cout << "#centered receptor: true" << endl;
-	cout << "#centered ligands: true" << endl;
+	cout << "#centered receptor: false" << endl;
+	cout << "#centered ligands: false" << endl;
 	for (unsigned i = 0; i < numDofs; ++i) {
 		const as::EnGrad& enGrad = enGrads[i];
 		const as::DOF& dof = dofs[i];
@@ -437,7 +439,7 @@ void printResultsOutput(unsigned numDofs, as::DOF* dofs, as::EnGrad* enGrads, st
 		cout << 0.0 << " " << 0.0 << " " << 0.0 << " "
 			 << 0.0 << " " << 0.0 << " " << 0.0 << endl;
 		cout << dof.ang.x << " " << dof.ang.y << " " << dof.ang.z << " "
-			 << dof.pos.x << " " << dof.pos.y << " " << dof.pos.z << endl;
+			 << dof.pos.x + pivot_diff[0]<< " " << dof.pos.y + pivot_diff[1] << " " << dof.pos.z + pivot_diff[2] << endl;
 	}
 
 	cout.precision(precisionSetting);
