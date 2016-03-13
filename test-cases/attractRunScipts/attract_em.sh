@@ -65,7 +65,7 @@ if [ 1 -eq 1 ]; then
 
 function em () {
 
-$ASDIR/emATTRACT --dof systsearch.dat -p $ATTRACTDIR/../attract.par -d 0  > out_$name.dat
+$ASDIR/emATTRACT --dof systsearch.dat -p $ATTRACTDIR/../attract.par -a receptorgrid.alphabet -d 0  > out_$name.dat
 
 }
 

@@ -70,7 +70,7 @@ function simulatedAnnealing () {
 echo '**************************************************************'
 echo "Iteration -1 kt:0.1 D:5 A:10"
 echo '**************************************************************'
-$ASDIR/mcATTRACT --iter 100 -g receptorgrid.grid -r receptorr.pdb -l ligandr.pdb -p $ATTRACTDIR/../attract.par --dof $start -d 0 --maxAng 10 --maxDist 5 --kT 0.1 > out_$name.start.dat
+$ASDIR/mcATTRACT --iter 100 -p $ATTRACTDIR/../attract.par -a receptorgrid.alphabet --dof $start -d 0 --maxAng 10 --maxDist 5 --kT 0.1 > out_$name.start.dat
 
 #kt=(0.5 0.3)
 #D=(1.0 0.3)
@@ -100,7 +100,7 @@ do
 	fi
 	#echo "stop $stop"
 	
-	$ASDIR/mcATTRACT --iter $num -g receptorgrid.grid -r receptorr.pdb -l ligandr.pdb -p $ATTRACTDIR/../attract.par --dof $start -d 0 --maxAng $A --maxDist ${D[$i]} --kT ${kt[$i]} > $stop
+	$ASDIR/mcATTRACT --iter $num -p $ATTRACTDIR/../attract.par -a receptorgrid.alphabet --dof $start -d 0 --maxAng $A --maxDist ${D[$i]} --kT ${kt[$i]} > $stop
 done
 }
 
