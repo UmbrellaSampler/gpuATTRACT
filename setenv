@@ -1,7 +1,7 @@
 # use command "source setenv" in shell to configure the environmental variables
 
 # Configure ATTRACT environment
-export ATTRACTDIR=./attract/bin
+export ATTRACTDIR="$(pwd)/attract/bin"
 export ATTRACTTOOLS=$ATTRACTDIR/../tools
 export ATTRACTGUI=$ATTRACTDIR/../gui
 export PYTHONPATH=$PYTHONPATH:/usr/share/pdb2pqr
@@ -12,5 +12,5 @@ export PATH=$PATH:$CUDADIR/bin
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CUDADIR/lib64
 
 # Configure gpuATTRACT environment
-export ASDIR=./bin
+export ASDIR="$(pwd)/bin"
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ASDIR

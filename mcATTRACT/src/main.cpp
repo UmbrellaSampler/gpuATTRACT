@@ -278,15 +278,15 @@ int main (int argc, char *argv[]) {
 	init_logger(use_file);
 	unique_ptr<Log::Logger> log(mca::_log);
 
-
 	/* required variables */
+	string dofName;
+
+	/* optional variables */
 	string gridName;
 	string ligName;
 	string recName;
 	string paramsName;
-	string dofName;
-
-	/* optional variables */
+	string recGridAlphabetName;
 //	static double maxDist;
 //	static double maxAng;	They are set as well;
 //	static double kT;
@@ -308,14 +308,15 @@ int main (int argc, char *argv[]) {
 		TCLAP::CmdLine cmd("An ATTRACT client that performs energy minimization by a Monte Carlo search.", ' ', "1.1");
 
 		/* define required arguments */
-		TCLAP::ValueArg<string> recArg("r","receptor-pdb","pdb-file name of receptor.",true,"","*.pdb", cmd);
-		TCLAP::ValueArg<string> ligArg("l","ligand-pdb","pdb-file name of ligand.",true,"","*.pdb", cmd);
-		TCLAP::ValueArg<string> gridArg("g","grid","Receptor grid file.",true,"","*.grid", cmd);
-		TCLAP::ValueArg<string> paramArg("p","par","Attract parameter file.",true,"","*.par", cmd);
 		TCLAP::ValueArg<string> dofArg("","dof","",true,"Structure (DOF) file","*.dat", cmd);
 
-
 		/* define optional arguments */
+		TCLAP::ValueArg<string> recArg("r","receptor-pdb","pdb-file name of receptor. (Default: receptorr.pdb)", false,"receptorr.pdb","*.pdb", cmd);
+		TCLAP::ValueArg<string> ligArg("l","ligand-pdb","pdb-file name of ligand. (Default: ligandr.pdb)", false, "ligandr.pdb","*.pdb", cmd);
+		TCLAP::ValueArg<string> gridArg("g","grid","Receptor grid file. (Default: receptorgrid.grid)",false, "receptorgrid.grid","*.grid", cmd);
+		TCLAP::ValueArg<string> paramArg("p","par","Attract parameter file. (Default: attract.par)",false,"attract.par","*.par", cmd);
+		TCLAP::ValueArg<string> gridAlphabet("a","receptor-alphabet","Receptor grid alphabet file.",false,"","*.alphabet", cmd);
+
 		TCLAP::ValueArg<unsigned> cpusArg("c","cpus","Number of CPU threads to be used. (Default: 0)", false, 0, "uint");
 		TCLAP::ValueArg<unsigned> numIterArg("","iter","Number Monte Carlo iterations. (Default: 50)", false, 50, "uint", cmd);
 		TCLAP::ValueArg<double> maxDistArg("","maxDist","Maximum translational displacement (A). (Default: 1.0A)", false, 1.0, "int", cmd);
@@ -346,6 +347,7 @@ int main (int argc, char *argv[]) {
 		maxDist		= maxDistArg.getValue();
 		maxAng		= maxAngArg.getValue();
 		kT 			= kTArg.getValue();
+		recGridAlphabetName = gridAlphabet.getValue();
 
 	} catch (TCLAP::ArgException &e){
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
@@ -356,6 +358,7 @@ int main (int argc, char *argv[]) {
 	log->info() << "gridName=" << gridName 		<< endl;
 	log->info() << "parName=" << paramsName 	<< endl;
 	log->info() << "dofName=" << dofName	 	<< endl;
+	log->info() << "recGridAlphabetName" << recGridAlphabetName << endl;
 	log->info() << "numCPUs=" << numCPUs 		<< endl;
 	log->info() << "devices=[ "; for (auto device : devices) *log << device << " "; *log << "]"<<  endl;
 	log->info() << "numIter=" << numIter 		<< endl;
@@ -449,6 +452,20 @@ int main (int argc, char *argv[]) {
 		server.getProtein(ligId)->pivotize(pivots[1]);
 	}
 	log->info() << "pivots= "; for (auto pivot : pivots) *log << pivot << ", "; *log << endl;
+
+	/* apply receptor grid mapping for ligand */
+	if (!recGridAlphabetName.empty()) {
+		std::vector<unsigned> mapVec = asDB::readGridAlphabetFromFile(recGridAlphabetName);
+		as::TypeMap typeMap = as::createTypeMapFromVector(mapVec);
+		as::Protein* prot = server.getProtein(ligId);
+		as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->type());
+		as::applyMapping(typeMap, prot->numAtoms(), prot->type(), prot->mappedTypes());
+	} else {
+		log->warning() << "No grid alphabet specified. Applying default mapping." << endl;
+		as::Protein* prot = server.getProtein(ligId);
+		as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->type());
+		as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->mappedTypes());
+	}
 
 	/* transform ligand dofs assuming that the receptor is always centered in the origin */
 	asClient::transformDOF_glob2rec(DOF_molecules[0], DOF_molecules[1], pivots[0], pivots[1], centered_receptor, centered_ligands);

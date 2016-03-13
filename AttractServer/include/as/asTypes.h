@@ -159,6 +159,7 @@ typedef struct deviceProteinDesc {
 	float *zPos;
 
 	unsigned* type; 	/** atom type */
+	unsigned* mappedType;
 	float* charge;	/** charge of the atoms/particle */
 
 	unsigned numModes; /** number of modes */
@@ -318,10 +319,6 @@ std::ostream& operator <<(std::ostream& outStream,
 
 typedef struct DOF_t<MAXMODES> DOF;
 typedef struct ServerResult_t<MAXMODES> EnGrad;
-
-/* ToDo: check if the following two are used any more */
-typedef struct ServerDOF_t<MAXMODES> ServerDOF;
-typedef struct ServerResult_t<MAXMODES> ServerResult;
 
 struct deviceSimParam {
 	dielec_t dielec;				/** type of dielectric constant */

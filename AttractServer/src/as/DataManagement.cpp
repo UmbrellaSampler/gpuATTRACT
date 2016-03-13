@@ -105,9 +105,9 @@ int as::DataManagement::addProtein (int clientId, std::string name)
 	/* if not, read it and assign it to the first available location */
 	if (globId == -1) {
 		Protein* obj = asDB::createProteinFromPDB(name);
-		/* auto-pivotize and apply mapping by default */
+		/* auto-pivotize:
+		 * TODO move that elsewhere. This is behavior that is not expected */
 		obj->auto_pivotize();
-		obj->applyDefaultMapping();
 
 		Shared<Protein> sharedObj(obj);
 
@@ -224,8 +224,26 @@ int as::DataManagement::addProtein (std::string name) {
 	return addProtein(-1, name);
 }
 
-int as::DataManagement::addGridUnion (std::string name) {
-	return addGridUnion(-1, name);
+std::vector<int> as::DataManagement::addProteinEnsemble(int clientId, std::string filename) {
+	std::vector<std::string> fileNames = asDB::readFileNamesFromEnsembleList(filename);
+	std::vector<int> proteinIds;
+	for (auto i = 0; i < fileNames.size(); ++i) {
+		int id = addProtein(clientId, fileNames[i]);
+		proteinIds.push_back(id);
+	}
+	/* Pivotize explicitly since all need to have the same pivot*/
+	Protein* prot0 = getProtein(proteinIds[0]);
+	for(auto id: proteinIds) {
+		getProtein(id)->pivotize(prot0->pivot());
+	}
+	return proteinIds;
+}
+std::vector<int> as::DataManagement::addProteinEnsemble(std::string filename) {
+	return addProteinEnsemble(-1, filename);
+}
+
+int as::DataManagement::addGridUnion (std::string filename) {
+	return addGridUnion(-1, filename);
 }
 
 void as::DataManagement::addParamTable(std::string name)
@@ -509,6 +527,7 @@ void as::DataManagement::attachProteinToDevice(int globalId, unsigned deviceId)
 
 	deviceProteinDesc &deviceDesc = cudaDesc.deviceDesc;
 	hostProteinResource &hostResc = cudaDesc.hostResc;
+
 	setDeviceProtein(deviceDesc, deviceId, devloc);
 
 	/* adapt device descriptions */
@@ -646,7 +665,8 @@ void as::DataManagement::updateDeviceIDLookup() {
 		for (int j = 0; j < sizeProts; ++j) {
 			const int shift = (j*(j+1)) / 2;
 			for(int k = 0; k <= j; ++k) {
-				lookUp[i*sizeSlice + j*shift + k] = clacCommonDeviceIDs(i,j,k);
+				lookUp[i*sizeSlice + shift + k] = clacCommonDeviceIDs(i,j,k);
+
 			}
 		}
 	}

@@ -62,14 +62,15 @@ int main (int argc, char *argv[]) {
 	unique_ptr<Log::Logger> log(score::_log);
 
 	/* required variables */
-	string recName;
-	string ligName;
-	string gridName;
-	string paramsName;
 	string dofName;
 
-
 	/* optional variables */
+	string gridName;
+	string ligName;
+	string recName;
+	string paramsName;
+	string recGridAlphabetName;
+
 	int numCPUs;
 	vector<int> devices;
 	int chunkSize;
@@ -97,6 +98,7 @@ int main (int argc, char *argv[]) {
 		TCLAP::ValueArg<string> ligArg("l","ligand-pdb","pdb-file name of ligand. (Default: ligandr.pdb)", false, "ligandr.pdb","*.pdb", cmd);
 		TCLAP::ValueArg<string> gridArg("g","grid","Receptor grid file. (Default: receptorgrid.grid)",false, "receptorgrid.grid","*.grid", cmd);
 		TCLAP::ValueArg<string> paramArg("p","par","Attract parameter file. (Default: attract.par)",false,"attract.par","*.par", cmd);
+		TCLAP::ValueArg<string> gridAlphabet("a","receptor-alphabet","Receptor grid alphabet file.",false,"","*.alphabet", cmd);
 
 		TCLAP::ValueArg<int> cpusArg("c","cpus","Number of CPU threads to be used. (Default: 0)", false, 0, "int", cmd);
 
@@ -126,6 +128,7 @@ int main (int argc, char *argv[]) {
 		maxItemsPerSubmit = maxItemsArg.getValue();
 		numToConsider = num2ConsiderArg.getValue();
 		whichToTrack = which2TrackArg.getValue();
+		recGridAlphabetName = gridAlphabet.getValue();
 
 	} catch (TCLAP::ArgException &e){
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
@@ -136,6 +139,7 @@ int main (int argc, char *argv[]) {
 	log->info() << "gridName=" << gridName 		<< endl;
 	log->info() << "parName=" << paramsName 	<< endl;
 	log->info() << "dofName=" << dofName	 	<< endl;
+	log->info() << "recGridAlphabetName" << recGridAlphabetName << endl;
 	log->info() << "numCPUs=" << numCPUs 		<< endl;
 	log->info() << "devices=[ "; for (auto device : devices) *log << device << " "; *log << "]"<<  endl;
 	log->info() << "chunkSize=" << chunkSize 	<< endl;
@@ -238,9 +242,21 @@ int main (int argc, char *argv[]) {
 		server.getProtein(ligId)->pivotize(pivots[1]);
 	}
 
-//	server.getProtein(recId)->print();
-
 	log->info() << "pivots= "; for (auto pivot : pivots) *log << pivot << ", "; *log << endl;
+
+	/* apply receptor grid mapping for ligand */
+	if (!recGridAlphabetName.empty()) {
+		std::vector<unsigned> mapVec = asDB::readGridAlphabetFromFile(recGridAlphabetName);
+		as::TypeMap typeMap = as::createTypeMapFromVector(mapVec);
+		as::Protein* prot = server.getProtein(ligId);
+		as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->type());
+		as::applyMapping(typeMap, prot->numAtoms(), prot->type(), prot->mappedTypes());
+	} else {
+		log->warning() << "No grid alphabet specified. Applying default mapping." << endl;
+		as::Protein* prot = server.getProtein(ligId);
+		as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->type());
+		as::applyDefaultMapping(prot->numAtoms(), prot->type(), prot->mappedTypes());
+	}
 
 	if (true){
 		as::GridUnion* grid = server.getGridUnion(gridId);

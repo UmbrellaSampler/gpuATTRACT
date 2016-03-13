@@ -31,11 +31,14 @@ as::Protein::Protein() :
 	_type(nullptr), _charge(nullptr),
 	_numModes(0), _modes(nullptr) {};
 
+
+/* TODO: Deprecated!!! */
 as::Protein::Protein(ProteinDesc desc) :
 	_tag(desc.id),
 	_numAtoms(desc.numAtoms),
 	_pivot(0,0,0),
 	_type(desc.type),
+	_mappedTypes(_numAtoms),
 	_charge(desc.charge),
 	_numModes(desc.numModes)
 
@@ -67,10 +70,10 @@ as::Protein::Protein(ProteinDesc desc) :
 
 /* Destructor */
 as::Protein::~Protein() {
-	if (_pos     != nullptr) delete[] _pos;
-	if (_charge  != nullptr) delete[] _charge;
-	if (_type    != nullptr) delete[] _type;
-	if (_modes   != nullptr) delete[] _modes;
+	delete[] _pos;
+	delete[] _charge;
+	delete[] _type;
+	delete[] _modes;
 }
 
 
@@ -186,6 +189,7 @@ void as::Protein::print() {
 		     << setw(w) << yPos()[i]
 		     << setw(w) << zPos()[i]
 		     << setw(6) << type()[i]
+		     << setw(6) << mappedTypes()[i]
 			 << setw(w) << charge()[i]
 			 << endl;
 	}

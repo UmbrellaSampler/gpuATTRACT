@@ -76,6 +76,9 @@ as::cudaProteinDesc as::DeviceDataFactory::initDeviceProtein(const Protein* prot
 	unsigned* d_type;
 	cudaVerify(cudaMalloc((void**) &d_type, numAtoms * sizeof(unsigned)));
 	cudaVerify(cudaMemcpy(d_type, protein->type(), numAtoms * sizeof(unsigned), cudaMemcpyHostToDevice));
+	unsigned* d_mappedType;
+	cudaVerify(cudaMalloc((void**) &d_mappedType, numAtoms * sizeof(unsigned)));
+	cudaVerify(cudaMemcpy(d_mappedType, protein->mappedType(), numAtoms * sizeof(unsigned), cudaMemcpyHostToDevice));
 	float* d_charge;
 	cudaVerify(cudaMalloc((void**) &d_charge, numAtoms * sizeof(float)));
 	cudaVerify(cudaMemcpy(d_charge, protein->charge(), numAtoms * sizeof(float), cudaMemcpyHostToDevice));
@@ -98,6 +101,7 @@ as::cudaProteinDesc as::DeviceDataFactory::initDeviceProtein(const Protein* prot
 	deviceDesc.yPos = d_yPos;
 	deviceDesc.zPos = d_zPos;
 	deviceDesc.type = d_type;
+	deviceDesc.mappedType = d_mappedType;
 	deviceDesc.charge = d_charge;
 	deviceDesc.numModes = numModes;
 	deviceDesc.xModes = d_xModes;
@@ -179,6 +183,9 @@ void as::DeviceDataFactory::disposeDeviceProtein(hostProteinResource resc, int d
 	cudaVerify(cudaFree(resc.xPos));
 	cudaVerify(cudaFree(resc.yPos));
 	cudaVerify(cudaFree(resc.zPos));
+	cudaVerify(cudaFree(resc.charge));
+	cudaVerify(cudaFree(resc.type));
+	cudaVerify(cudaFree(resc.mappedType));
 	if (resc.numModes != 0) {
 		cudaVerify(cudaFree(resc.xModes));
 		cudaVerify(cudaFree(resc.yModes));

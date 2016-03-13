@@ -24,9 +24,11 @@
 #include <string>
 #include <map>
 #include <algorithm>
+#include <cassert>
 
 #include "as/interface.h"
 #include "asUtils/Vec3.h"
+#include "as/TypeMap.h"
 
 
 namespace as {
@@ -85,6 +87,14 @@ public:
 		return _type;
 	}
 
+	const unsigned* mappedType(unsigned gridId = 0) const {
+		return _mappedTypes.data();
+	}
+
+	unsigned* mappedTypes(unsigned gridId = 0) {
+		return _mappedTypes.data();
+	}
+
 	float* xModes() const {
 		return _modes;
 	}
@@ -127,6 +137,7 @@ public:
 
 	void setNumAtoms(unsigned numAtoms) {
 		_numAtoms = numAtoms;
+		_mappedTypes.resize(_numAtoms);
 	}
 
 	void setNumModes(unsigned numModes) {
@@ -149,23 +160,6 @@ public:
 	 ** always uses orig. pdb-coordinates.
 	 */
 	void auto_pivotize();
-
-	/*
-	 ** @brief: deprecated!!! used unil mapping facility is implemented
-	 */
-	void applyDefaultMapping() {
-		// support old (max=32) and new (max=99) format
-		unsigned maxType = *(std::max_element(_type, _type + _numAtoms));
-		if (maxType <= 32) {
-			maxType = 32;
-		} else if(maxType <= 99) {
-			maxType = 99;
-		}
-		for (unsigned i = 0; i < _numAtoms; ++i) {
-//			_type[i] = _type[i] == 0 ? 31 : _type[i]-1;
-			_type[i] = _type[i] == maxType ? 0 : _type[i];
-		}
-	}
 
 	/*
 	 ** @brief: prints the contents of the protein.
@@ -196,6 +190,7 @@ protected:
 	float *_pos;	/** Cartesian coordinates in cm-frame (pivotized) */
 
 	unsigned* _type; 	/** atom type */
+	std::vector<unsigned> _mappedTypes; /* for receptor grid mapping */
 	float* _charge;	/** charge of the atoms/particle */
 
 	unsigned _numModes; /** number of modes */
