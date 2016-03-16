@@ -31,8 +31,8 @@
  ****************************/
 as::cudaGridUnionDesc as::DeviceDataFactory::initDeviceGridUnion(const GridUnion* gridUnion, int deviceId)
 {
-	assert(deviceId >= 0);
-	cudaVerify(cudaSetDevice(deviceId));
+	ASSERT(deviceId >= 0);
+	CUDA_CHECK(cudaSetDevice(deviceId));
 
 
 	cudaIntrplGridDesc inner = DeviceDataFactory::initIntrpl(gridUnion->innerGrid());
@@ -57,43 +57,43 @@ as::cudaGridUnionDesc as::DeviceDataFactory::initDeviceGridUnion(const GridUnion
 
 as::cudaProteinDesc as::DeviceDataFactory::initDeviceProtein(const Protein* protein, int deviceId)
 {
-	assert(deviceId >= 0);
-	cudaVerify(cudaSetDevice(deviceId));
+	ASSERT(deviceId >= 0);
+	CUDA_CHECK(cudaSetDevice(deviceId));
 
 	deviceProteinDesc deviceDesc;
 	unsigned numAtoms = protein->numAtoms();
 
 	float *d_xPos;
-	cudaVerify(cudaMalloc((void**) &d_xPos, numAtoms * sizeof(float)));
-	cudaVerify(cudaMemcpy(d_xPos, protein->xPos(), numAtoms * sizeof(float), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMalloc((void**) &d_xPos, numAtoms * sizeof(float)));
+	CUDA_CHECK(cudaMemcpy(d_xPos, protein->xPos(), numAtoms * sizeof(float), cudaMemcpyHostToDevice));
 	float *d_yPos;
-	cudaVerify(cudaMalloc((void**) &d_yPos, numAtoms * sizeof(float)));
-	cudaVerify(cudaMemcpy(d_yPos, protein->yPos(), numAtoms * sizeof(float), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMalloc((void**) &d_yPos, numAtoms * sizeof(float)));
+	CUDA_CHECK(cudaMemcpy(d_yPos, protein->yPos(), numAtoms * sizeof(float), cudaMemcpyHostToDevice));
 	float *d_zPos;
-	cudaVerify(cudaMalloc((void**) &d_zPos, numAtoms * sizeof(float)));
-	cudaVerify(cudaMemcpy(d_zPos, protein->zPos(), numAtoms * sizeof(float), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMalloc((void**) &d_zPos, numAtoms * sizeof(float)));
+	CUDA_CHECK(cudaMemcpy(d_zPos, protein->zPos(), numAtoms * sizeof(float), cudaMemcpyHostToDevice));
 
 	unsigned* d_type;
-	cudaVerify(cudaMalloc((void**) &d_type, numAtoms * sizeof(unsigned)));
-	cudaVerify(cudaMemcpy(d_type, protein->type(), numAtoms * sizeof(unsigned), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMalloc((void**) &d_type, numAtoms * sizeof(unsigned)));
+	CUDA_CHECK(cudaMemcpy(d_type, protein->type(), numAtoms * sizeof(unsigned), cudaMemcpyHostToDevice));
 	unsigned* d_mappedType;
-	cudaVerify(cudaMalloc((void**) &d_mappedType, numAtoms * sizeof(unsigned)));
-	cudaVerify(cudaMemcpy(d_mappedType, protein->mappedType(), numAtoms * sizeof(unsigned), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMalloc((void**) &d_mappedType, numAtoms * sizeof(unsigned)));
+	CUDA_CHECK(cudaMemcpy(d_mappedType, protein->mappedType(), numAtoms * sizeof(unsigned), cudaMemcpyHostToDevice));
 	float* d_charge;
-	cudaVerify(cudaMalloc((void**) &d_charge, numAtoms * sizeof(float)));
-	cudaVerify(cudaMemcpy(d_charge, protein->charge(), numAtoms * sizeof(float), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMalloc((void**) &d_charge, numAtoms * sizeof(float)));
+	CUDA_CHECK(cudaMemcpy(d_charge, protein->charge(), numAtoms * sizeof(float), cudaMemcpyHostToDevice));
 
 	unsigned numModes = protein->numModes();
 	float* d_xModes = NULL;
 	float* d_yModes = NULL;
 	float* d_zModes = NULL;
 	if (numModes != 0) {
-		cudaVerify(cudaMalloc((void**) d_xModes, numAtoms * numModes * sizeof(float)));
-		cudaVerify(cudaMemcpy(d_xModes, protein->xModes(), numAtoms * numModes * sizeof(float), cudaMemcpyHostToDevice));
-		cudaVerify(cudaMalloc((void**) d_yModes, numAtoms * numModes * sizeof(float)));
-		cudaVerify(cudaMemcpy(d_yModes, protein->yModes(), numAtoms * numModes * sizeof(float), cudaMemcpyHostToDevice));
-		cudaVerify(cudaMalloc((void**) d_zModes, numAtoms * numModes * sizeof(float)));
-		cudaVerify(cudaMemcpy(d_zModes, protein->zModes(), numAtoms * numModes * sizeof(float), cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMalloc((void**) d_xModes, numAtoms * numModes * sizeof(float)));
+		CUDA_CHECK(cudaMemcpy(d_xModes, protein->xModes(), numAtoms * numModes * sizeof(float), cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMalloc((void**) d_yModes, numAtoms * numModes * sizeof(float)));
+		CUDA_CHECK(cudaMemcpy(d_yModes, protein->yModes(), numAtoms * numModes * sizeof(float), cudaMemcpyHostToDevice));
+		CUDA_CHECK(cudaMalloc((void**) d_zModes, numAtoms * numModes * sizeof(float)));
+		CUDA_CHECK(cudaMemcpy(d_zModes, protein->zModes(), numAtoms * numModes * sizeof(float), cudaMemcpyHostToDevice));
 	}
 
 	deviceDesc.numAtoms = numAtoms;
@@ -118,16 +118,16 @@ as::cudaProteinDesc as::DeviceDataFactory::initDeviceProtein(const Protein* prot
 as::cudaParamTableDesc as::DeviceDataFactory::initDeviceParamTable (
 		const AttrParamTable* table, int deviceId)
 {
-	assert(deviceId >= 0);
-	cudaVerify(cudaSetDevice(deviceId));
+	ASSERT(deviceId >= 0);
+	CUDA_CHECK(cudaSetDevice(deviceId));
 
 	deviceParamTableDesc deviceDesc;
 
 	const unsigned numTypes = table->numTypes();
 
 	AttrParamTable::type* d_table;
-	cudaVerify(cudaMalloc((void**)&d_table, numTypes*numTypes*sizeof(AttrParamTable::type)));
-	cudaVerify(cudaMemcpy(d_table, table->table(), numTypes*numTypes*sizeof(AttrParamTable::type), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMalloc((void**)&d_table, numTypes*numTypes*sizeof(AttrParamTable::type)));
+	CUDA_CHECK(cudaMemcpy(d_table, table->table(), numTypes*numTypes*sizeof(AttrParamTable::type), cudaMemcpyHostToDevice));
 
 	deviceDesc.numTypes = numTypes;
 	deviceDesc.shape = table->potShape();
@@ -141,8 +141,8 @@ as::cudaParamTableDesc as::DeviceDataFactory::initDeviceParamTable (
 
 void as::DeviceDataFactory::disposeDeviceGridUnion(hostGridUnionResource resc, int deviceId)
 {
-	assert(deviceId >= 0);
-	cudaVerify(cudaSetDevice(deviceId));
+	ASSERT(deviceId >= 0);
+	CUDA_CHECK(cudaSetDevice(deviceId));
 
 	hostIntrplGridResource& inner = resc.inner;
 	hostIntrplGridResource& outer = resc.outer;
@@ -150,54 +150,54 @@ void as::DeviceDataFactory::disposeDeviceGridUnion(hostGridUnionResource resc, i
 
 	/* Free interpolation grid resources */
 	for (uint i = 0; i<inner.numArrays; i++) {
-		cudaVerify(cudaFreeArray(inner.cuArrayPtr[i]));
-		cudaVerify(cudaDestroyTextureObject(inner.h_texArrayLin[i]));
-		cudaVerify(cudaDestroyTextureObject(inner.h_texArrayPt[i]));
+		CUDA_CHECK(cudaFreeArray(inner.cuArrayPtr[i]));
+		CUDA_CHECK(cudaDestroyTextureObject(inner.h_texArrayLin[i]));
+		CUDA_CHECK(cudaDestroyTextureObject(inner.h_texArrayPt[i]));
 	}
 	delete[] inner.cuArrayPtr;
 	delete[] inner.h_texArrayLin;
 	delete[] inner.h_texArrayPt;
-	cudaVerify(cudaFree(inner.d_texArrayLin));
-	cudaVerify(cudaFree(inner.d_texArrayPt));
+	CUDA_CHECK(cudaFree(inner.d_texArrayLin));
+	CUDA_CHECK(cudaFree(inner.d_texArrayPt));
 
 	for (uint i = 0; i<outer.numArrays; i++) {
-		cudaVerify(cudaFreeArray(outer.cuArrayPtr[i]));
-		cudaVerify(cudaDestroyTextureObject(outer.h_texArrayLin[i]));
-		cudaVerify(cudaDestroyTextureObject(outer.h_texArrayPt[i]));
+		CUDA_CHECK(cudaFreeArray(outer.cuArrayPtr[i]));
+		CUDA_CHECK(cudaDestroyTextureObject(outer.h_texArrayLin[i]));
+		CUDA_CHECK(cudaDestroyTextureObject(outer.h_texArrayPt[i]));
 	}
 	delete[] outer.cuArrayPtr;
 	delete[] outer.h_texArrayLin;
 	delete[] outer.h_texArrayPt;
-	cudaVerify(cudaFree(outer.d_texArrayLin));
-	cudaVerify(cudaFree(outer.d_texArrayPt));
+	CUDA_CHECK(cudaFree(outer.d_texArrayLin));
+	CUDA_CHECK(cudaFree(outer.d_texArrayPt));
 
 	/* Free NL grid resources */
-	cudaVerify(cudaFreeArray(NL.cuArray));
-	cudaVerify(cudaDestroyTextureObject(NL.tex));
+	CUDA_CHECK(cudaFreeArray(NL.cuArray));
+	CUDA_CHECK(cudaDestroyTextureObject(NL.tex));
 }
 void as::DeviceDataFactory::disposeDeviceProtein(hostProteinResource resc, int deviceId)
 {
-	assert(deviceId >= 0);
-	cudaVerify(cudaSetDevice(deviceId));
+	ASSERT(deviceId >= 0);
+	CUDA_CHECK(cudaSetDevice(deviceId));
 
-	cudaVerify(cudaFree(resc.xPos));
-	cudaVerify(cudaFree(resc.yPos));
-	cudaVerify(cudaFree(resc.zPos));
-	cudaVerify(cudaFree(resc.charge));
-	cudaVerify(cudaFree(resc.type));
-	cudaVerify(cudaFree(resc.mappedType));
+	CUDA_CHECK(cudaFree(resc.xPos));
+	CUDA_CHECK(cudaFree(resc.yPos));
+	CUDA_CHECK(cudaFree(resc.zPos));
+	CUDA_CHECK(cudaFree(resc.charge));
+	CUDA_CHECK(cudaFree(resc.type));
+	CUDA_CHECK(cudaFree(resc.mappedType));
 	if (resc.numModes != 0) {
-		cudaVerify(cudaFree(resc.xModes));
-		cudaVerify(cudaFree(resc.yModes));
-		cudaVerify(cudaFree(resc.zModes));
+		CUDA_CHECK(cudaFree(resc.xModes));
+		CUDA_CHECK(cudaFree(resc.yModes));
+		CUDA_CHECK(cudaFree(resc.zModes));
 	}
 }
 
 void as::DeviceDataFactory::disposeDeviceParamTable(hostParamTableResource resc, int deviceId) {
-	assert(deviceId >= 0);
-	cudaVerify(cudaSetDevice(deviceId));
+	ASSERT(deviceId >= 0);
+	CUDA_CHECK(cudaSetDevice(deviceId));
 
-	cudaVerify(cudaFree(resc.paramTable));
+	CUDA_CHECK(cudaFree(resc.paramTable));
 
 }
 
@@ -252,7 +252,7 @@ as::cudaIntrplGridDesc as::DeviceDataFactory::initIntrpl(const IntrplGrid* grid)
 
 	for (unsigned i = 0; i<grid->numTypes(); i++) {
 		cudaArray* &cuArray = h_cuArrayPtr[i];
-		cudaVerify(cudaMalloc3DArray(&cuArray, &channelDesc, cuExtent, cudaChannelFormatKindFloat));
+		CUDA_CHECK(cudaMalloc3DArray(&cuArray, &channelDesc, cuExtent, cudaChannelFormatKindFloat));
 
 		// copy data to 3D array
 		cudaMemcpy3DParms copyParams;
@@ -262,7 +262,7 @@ as::cudaIntrplGridDesc as::DeviceDataFactory::initIntrpl(const IntrplGrid* grid)
 		copyParams.dstArray = cuArray;
 		copyParams.extent   = cuExtent;
 		copyParams.kind     = cudaMemcpyHostToDevice;
-		cudaVerify(cudaMemcpy3D(&copyParams));
+		CUDA_CHECK(cudaMemcpy3D(&copyParams));
 
 		// Specify resource
 		cudaResourceDesc resDesc;
@@ -273,18 +273,18 @@ as::cudaIntrplGridDesc as::DeviceDataFactory::initIntrpl(const IntrplGrid* grid)
 		// Create texture objects
 		cudaTextureObject_t &texObjLin = h_texArrayLin[i];
 		texObjLin = (long long)NULL;
-		cudaVerify(cudaCreateTextureObject(&texObjLin, &resDesc, &texDescLin, NULL));
+		CUDA_CHECK(cudaCreateTextureObject(&texObjLin, &resDesc, &texDescLin, NULL));
 
 		cudaTextureObject_t &texObjPt = h_texArrayPt[i];
 		texObjPt = (long long)NULL;
-		cudaVerify(cudaCreateTextureObject(&texObjPt, &resDesc, &texDescPt, NULL));
+		CUDA_CHECK(cudaCreateTextureObject(&texObjPt, &resDesc, &texDescPt, NULL));
 	}
 
-	cudaVerify(cudaMalloc((void**)&d_texArrayLin, grid->numTypes()*sizeof(cudaTextureObject_t)));
-	cudaVerify(cudaMemcpy(d_texArrayLin, h_texArrayLin,grid->numTypes()*sizeof(cudaTextureObject_t), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMalloc((void**)&d_texArrayLin, grid->numTypes()*sizeof(cudaTextureObject_t)));
+	CUDA_CHECK(cudaMemcpy(d_texArrayLin, h_texArrayLin,grid->numTypes()*sizeof(cudaTextureObject_t), cudaMemcpyHostToDevice));
 
-	cudaVerify(cudaMalloc((void**)&d_texArrayPt, grid->numTypes()*sizeof(cudaTextureObject_t)));
-	cudaVerify(cudaMemcpy(d_texArrayPt, h_texArrayPt,grid->numTypes()*sizeof(cudaTextureObject_t), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMalloc((void**)&d_texArrayPt, grid->numTypes()*sizeof(cudaTextureObject_t)));
+	CUDA_CHECK(cudaMemcpy(d_texArrayPt, h_texArrayPt,grid->numTypes()*sizeof(cudaTextureObject_t), cudaMemcpyHostToDevice));
 
 	/* create deviceIntrplGridDesc */
 	deviceIntrplGridDesc deviceDesc;
@@ -318,7 +318,7 @@ as::cudaIntrplGridDesc as::DeviceDataFactory::initIntrpl(const IntrplGrid* grid)
 
 as::cudaNLGridDesc as::DeviceDataFactory::initNL(const NLGrid* grid) {
 
-	cudaChannelFormatDesc channelDesc =  cudaCreateChannelDesc(32, 32, 0, 0, cudaChannelFormatKindUnsigned);
+	cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc(32, 32, 0, 0, cudaChannelFormatKindUnsigned);
 
 	struct cudaExtent cuExtent = make_cudaExtent(grid->width(), grid->height(), grid->depth());
 	// For cudaMalloc3DArray: width range in elements.
@@ -335,7 +335,7 @@ as::cudaNLGridDesc as::DeviceDataFactory::initNL(const NLGrid* grid) {
 	texDesc.normalizedCoords = false;
 
 	cudaArray* cuArray;
-	cudaVerify(cudaMalloc3DArray(&cuArray, &channelDesc, cuExtent));
+	CUDA_CHECK(cudaMalloc3DArray(&cuArray, &channelDesc, cuExtent));
 
 	// copy data to 3D array
 	cudaMemcpy3DParms copyParams;
@@ -344,7 +344,7 @@ as::cudaNLGridDesc as::DeviceDataFactory::initNL(const NLGrid* grid) {
 	copyParams.dstArray = cuArray;
 	copyParams.extent   = cuExtent;
 	copyParams.kind     = cudaMemcpyHostToDevice;
-	cudaVerify(cudaMemcpy3D(&copyParams));
+	CUDA_CHECK(cudaMemcpy3D(&copyParams));
 
 	// Specify resource
 	cudaResourceDesc resDesc;
@@ -355,12 +355,12 @@ as::cudaNLGridDesc as::DeviceDataFactory::initNL(const NLGrid* grid) {
 	// Create texture object
 	cudaTextureObject_t texObj;
 	texObj = (long long)NULL;
-	cudaVerify(cudaCreateTextureObject(&texObj, &resDesc, &texDesc, NULL));
+	CUDA_CHECK(cudaCreateTextureObject(&texObj, &resDesc, &texDesc, NULL));
 
 	// Create device neighbor list
 	unsigned* d_neighborList;
-	cudaVerify(cudaMalloc((void**)&d_neighborList, grid->neighborListSize()*sizeof(unsigned)));
-	cudaVerify(cudaMemcpy(d_neighborList, grid->neighborList(),grid->neighborListSize()*sizeof(unsigned), cudaMemcpyHostToDevice));
+	CUDA_CHECK(cudaMalloc((void**)&d_neighborList, grid->neighborListSize()*sizeof(unsigned)));
+	CUDA_CHECK(cudaMemcpy(d_neighborList, grid->neighborList(),grid->neighborListSize()*sizeof(unsigned), cudaMemcpyHostToDevice));
 
 	/* create deviceNLGridDesc */
 	deviceNLGridDesc deviceDesc;

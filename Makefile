@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 # Find out the base directory
 BINDIR = bin
 $(shell mkdir -p $(BINDIR))
@@ -10,7 +11,7 @@ default: all
 # Each config should at least provide the two targets RELEASE and DEBUG.
 TARGET ?= RELEASE
 
-.PHONY: help all emATTRACT mcATTRACT scATTRACT attract clean_as clean_em clean_mc clean_sc clean_attract cleanall_as cleanall_em cleanall_mc cleanall_sc cleanall_attract clean cleanall
+.PHONY: help all gpuATTRACT emATTRACT mcATTRACT scATTRACT attract clean_as clean_em clean_mc clean_sc clean_attract cleanall_as cleanall_em cleanall_mc cleanall_sc cleanall_attract clean cleanall
 
 em: as
 	cd emATTRACT/bin && $(MAKE) TARGET=$(TARGET)
@@ -24,20 +25,43 @@ sc: as
 	cd scATTRACT/bin && $(MAKE) TARGET=$(TARGET)
 	cd $(BINDIR) && ln -sf ../scATTRACT/bin/scATTRACT
 
-as: 
+as: check_cuda_version
 	cd AttractServer/lib && $(MAKE) TARGET=$(TARGET)
 	cd $(BINDIR) && ln -sf ../AttractServer/lib/libAttractServer.so
 
 attract:
 	cd attract/bin && $(MAKE) all
 
+NVCC_RESULT = $(shell which nvcc 2> NULL)
+NVCC_TEST = $(notdir $(NVCC_RESULT))
+
+MIN_VERSION="6.5"
+check_cuda_version:
+	@echo "Makefile: Testing CUDA requirements"
+	@if [ "$(NVCC_TEST)" == "nvcc" ]; then \
+		echo -e >&2 "Makefile:\tOK: nvcc compiler found"; \
+	else \
+		echo -e >&2 "Makefile:\tERROR: nvcc compiler not found"; \
+		false; \
+	fi 
+			
+	@NVCC_VERSION=$$(nvcc --version | grep release | cut -d, -f2 | cut -d" " -f3); \
+	if (( $$(echo "$$NVCC_VERSION >= $(MIN_VERSION)" | bc -l) )); then \
+		echo -e >&2 "Makefile:\tOK: Compiler version $$NVCC_VERSION"; \
+	else \
+		echo -e >&2 "Makefile:\tERROR: Compiler version ($$NVCC_VERSION) too old. Upgrade to a version >= $(MIN_VERSION)"; \
+		false; \
+	fi
+
+all: gpuATTRACT attract
+
+gpuATTRACT: em mc sc
+
 emATTRACT: em
 mcATTRACT: mc
 scATTRACT: sc
 
-all: em mc sc attract
-
-clean: clean_as clean_em clean_mc clean_sc clean_attract
+clean: clean_gpuATTRACT clean_attract
 	
 clean_as:
 	cd AttractServer/lib && $(MAKE) clean
@@ -54,7 +78,8 @@ clean_sc:
 clean_attract:
 	cd attract/bin && rm -f *.o
 
-
+clean_gpuATTRACT: clean_as clean_em clean_mc clean_sc
+ 
 cleanall: cleanall_as cleanall_em cleanall_mc cleanall_sc cleanall_attract
 	rm -r $(BINDIR)
 	
@@ -81,6 +106,7 @@ help:
 	@echo
 	@echo "targets:"
 	@echo "make all           build libAttractServer.so, emATTRACT, mcATTRACT, scATTRACT, attract"
+	@echo "make gpuATTRACT    build libAttractServer.so, emATTRACT, mcATTRACT, scATTRACT
 	@echo "make em            build libAttractServer.so and emATTRACT. (= make emATTRACT)"
 	@echo "make mc            build libAttractServer.so and mcATTRACT. (= make mcATTRACT)"
 	@echo "make sc            build libAttractServer.so and scATTRACT. (= make scATTRACT)"

@@ -79,8 +79,8 @@ int as::DataManagement::addProtein (int clientId, std::string name)
 {
 	/* search in global grid/protein arrays if already used and assign a global ID */
 	/* clientId == -1 is a special case: It is used to add a Grid without holding it by a client */
-	assert(name.empty() == false);
-	assert(clientId >= -1);
+	ASSERT(name.empty() == false);
+	ASSERT(clientId >= -1);
 	int globId = -1;
 	{
 		std::lock_guard<std::recursive_mutex> guard(_m_addData);
@@ -153,8 +153,8 @@ int as::DataManagement::addGridUnion (int clientId, std::string name) {
 	/* search in global grid/protein arrays if already used and assign a global ID */
 	/* clientId == -1 is a special case: It is used to add a Grid without holding it by a client */
 
-	assert(name.empty() == false);
-	assert(clientId >= -1);
+	ASSERT(name.empty() == false);
+	ASSERT(clientId >= -1);
 	int globId = -1;
 	{
 		std::lock_guard<std::recursive_mutex> guard(_m_addData);
@@ -248,7 +248,7 @@ int as::DataManagement::addGridUnion (std::string filename) {
 
 void as::DataManagement::addParamTable(std::string name)
 {
-	assert(name.empty() == false);
+	ASSERT(name.empty() == false);
 	AttrParamTable* obj = asDB::createParamTableFromFile(name);
 	Shared<AttrParamTable> sharedObj(obj);
 

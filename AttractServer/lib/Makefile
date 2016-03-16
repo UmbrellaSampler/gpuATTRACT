@@ -11,8 +11,6 @@ $(shell mkdir -p $(OBJDIR))
 NAME = AttractServer
 BINARY = lib$(NAME).so
 
-
-
 # choose target
 # Show list of all available targets for the current config with cfg_help
 # Each config should at least provide the two targets RELEASE and DEBUG.
@@ -34,8 +32,8 @@ INCLUDES = -I../include
 
 # AttractServer 
 CXX = nvcc
-ARCHFLAGS = -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35
-ARCHFLAGS2 = -gencode arch=compute_30,code=compute_30 -gencode arch=compute_35,code=compute_35
+ARCHFLAGS = -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35 -gencode arch=compute_50,code=sm_50
+ARCHFLAGS2 = -gencode arch=compute_30,code=compute_30 -gencode arch=compute_35,code=compute_35 -gencode arch=compute_50,code=compute_50
 ifeq ($(TARGET), RELEASE)
 	OFLAGS = -O3 -DNDEBUG
 else ifeq ($(TARGET), DEBUG) 
@@ -50,9 +48,6 @@ LIBS = -lnvToolsExt
 
 # search directories for source files
 VPATH = $(shell find ../src/ -type d)
-
-# pull in dependency info for *existing* .o files
-
 
 $(BINARY): $(OBJECTS)
 	@echo 'Building target: $@'

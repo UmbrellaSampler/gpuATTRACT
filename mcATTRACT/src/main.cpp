@@ -32,6 +32,7 @@
 #include <AttractServer>
 #include "asUtils/Logger.h"
 #include "asClient/DOFTransform.h"
+#include "asClient/cudaArchCheck.h"
 #include "asUtils/timer.h"
 
 #include "tclap/CmdLine.h"
@@ -322,8 +323,7 @@ int main (int argc, char *argv[]) {
 		TCLAP::ValueArg<double> maxDistArg("","maxDist","Maximum translational displacement (A). (Default: 1.0A)", false, 1.0, "int", cmd);
 		TCLAP::ValueArg<double> maxAngArg("","maxAng","Maximum rotational displacement (deg). (Default: 3.0deg)", false, 3.0, "int", cmd);
 		TCLAP::ValueArg<double> kTArg("","kT","Monte Carlo temperature. (Default: 10.0)", false, 10.0, "int", cmd);
-
-		int numDevicesAvailable; cudaVerify(cudaGetDeviceCount(&numDevicesAvailable));
+		int numDevicesAvailable = 0; CUDA_CHECK(cudaGetDeviceCount(&numDevicesAvailable));;
 		vector<int> allowedValues(numDevicesAvailable); iota(allowedValues.begin(), allowedValues.end(), 0);
 		TCLAP::ValuesConstraint<int> vc(allowedValues);
 		TCLAP::MultiArg<int> deviceArg("d","device","Device ID of serverMode to be used.", false, &vc);
@@ -366,6 +366,16 @@ int main (int argc, char *argv[]) {
 	log->info() << "maxAng="  << maxAng			<< endl;
 	log->info() << "kT="  	  << kT				<< endl;
 	log->info() << "chunkSize=" << chunkSize 	<< endl;
+
+	if (devices.size() > 0) {
+		/* Check Compute Capability of devices */
+		try {
+			asClient::checkComputeCapability();
+		} catch (std::exception& e) {
+			cerr << "Error: " << e.what() << endl;
+			exit(EXIT_FAILURE);
+		}
+	}
 
 	/* convert degrees to rad */
 	maxAng = maxAng * M_PI / 180.0;

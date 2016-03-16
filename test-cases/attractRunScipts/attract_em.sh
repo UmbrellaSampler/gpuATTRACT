@@ -24,7 +24,7 @@ scoreparams="$ATTRACTDIR/../attract.par receptorr.pdb ligandr.pdb --score --fix-
 
 #grid parameters
 gridparams=" --grid 1 receptorgrid.grid"
-if [ 1 -eq 1 ]; then ### move and change to disable parts of the protocol
+if [ 1 -eq 0 ]; then ### move and change to disable parts of the protocol
 
 echo '**************************************************************'
 echo 'Reduce partner PDBs...'
@@ -65,7 +65,7 @@ if [ 1 -eq 1 ]; then
 
 function em () {
 
-$ASDIR/emATTRACT --dof systsearch.dat -p $ATTRACTDIR/../attract.par -a receptorgrid.alphabet -d 0  > out_$name.dat
+$ASDIR/emATTRACT --dof systsearch.dat -p $ATTRACTDIR/../attract.par -a receptorgrid.alphabet -d 0 > out_$name.dat
 
 }
 
@@ -73,19 +73,16 @@ echo '**************************************************************'
 echo 'Docking'
 echo '**************************************************************'
 
-
-time (em) 2> $name.docking.time  ## timing does not work. Why?
-
-
+em
 
 echo '**************************************************************'
 echo 'Final rescoring'
 echo '**************************************************************'
 #$ATTRACTDIR/attract out_$name.dat $scoreparams --rcut 50.0 > out_$name.score 
-time (python $ATTRACTDIR/../protocols/attract.py out_$name.dat $scoreparams --rcut 50.0 --output out_$name.score --np 8 --chunks 8 ) 2> $name.re-scoring.8t.time
+time (python $ATTRACTDIR/../protocols/attract.py out_$name.dat $scoreparams --rcut 50.0 --output out_$name.score --np 3 --chunks 3 ) 2> $name.re-scoring.8t.time
 fi
 
-if [ 1 -eq 1 ]; then     
+if [ 1 -eq 0 ]; then     
 echo '**************************************************************'
 echo 'Merge the scores with the structures'
 echo '**************************************************************'

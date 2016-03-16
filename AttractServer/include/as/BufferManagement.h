@@ -88,6 +88,8 @@ private:
 	EnGrad* _contEnGradBuffer;	/** Page-Locked allocation */
 	WorkerItem* _contItemBuffer;/** Ptr. to all allocated WorkerItems */
 
+	bool cudaMallocHostused;
+
 	std::queue<WorkerItem*, std::list<WorkerItem*> > _itemQueue;
 
 	std::mutex _mutex;

@@ -31,18 +31,29 @@ using namespace Log;
 
 /* Constructor */
 as::BufferManagement::BufferManagement(unsigned numItems, unsigned numDOFsPerItem) :
-		_numItems(numItems), _itemQueue()
+		_numItems(numItems),
+		_contDOFBuffer(nullptr),
+		_contEnGradBuffer(nullptr),
+		_contItemBuffer(nullptr),
+		_itemQueue()
 {
 	assert(numItems > 0);
 	assert(numDOFsPerItem > 0);
 	assert(numItems*numDOFsPerItem*(sizeof(DOF)+sizeof(EnGrad)) <
 			1000*1000*10*(sizeof(DOF)+sizeof(EnGrad))); // < 540 MByte == 10 mio DOFs
 
-	cudaVerify(cudaMallocHost((void**)&_contDOFBuffer, numItems*numDOFsPerItem*sizeof(DOF)));
-	cudaVerify(cudaMallocHost((void**)&_contEnGradBuffer, numItems*numDOFsPerItem*sizeof(EnGrad)));
-//	_contDOFBuffer = new DOF[numItems*numDOFsPerItem];
-//	_contEnGradBuffer = new EnGrad[numItems*numDOFsPerItem];
-	//DEBUG
+	cudaError e = cudaMallocHost((void**)&_contDOFBuffer, numItems*numDOFsPerItem*sizeof(DOF));
+	if (e == cudaSuccess) {
+		CUDA_CHECK( cudaMallocHost((void**)&_contEnGradBuffer, numItems*numDOFsPerItem*sizeof(EnGrad)) );
+		ASSERT(_contDOFBuffer != nullptr && _contEnGradBuffer != nullptr);
+		cudaMallocHostused = true;
+	} else {
+		ASSERT(_contDOFBuffer == nullptr);
+		_contDOFBuffer = new DOF[numItems*numDOFsPerItem];
+		_contEnGradBuffer = new EnGrad[numItems*numDOFsPerItem];
+		cudaMallocHostused = false;
+	}
+
 	_contItemBuffer = new WorkerItem[numItems];
 
 	/* Cut large buffer into small pieces to create work items
@@ -67,10 +78,14 @@ as::BufferManagement::~BufferManagement() {
 	} else {
 		global_log->info() << std::setw(5) << " " << "Ok" << std::endl;
 	}
-	cudaVerify(cudaFreeHost(_contDOFBuffer));
-	cudaVerify(cudaFreeHost(_contEnGradBuffer));
-//	delete[] _contDOFBuffer;
-//	delete[] _contEnGradBuffer;
+
+	if (cudaMallocHostused == true) {
+		CUDA_CHECK(cudaFreeHost(_contDOFBuffer));
+		CUDA_CHECK(cudaFreeHost(_contEnGradBuffer));
+	} else {
+		delete[] _contDOFBuffer;
+		delete[] _contEnGradBuffer;
+	}
 	delete[] _contItemBuffer;
 }
 

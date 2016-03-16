@@ -31,6 +31,7 @@
 #include <AttractServer>
 #include "asUtils/Logger.h"
 #include "asClient/DOFTransform.h"
+#include "asClient/cudaArchCheck.h"
 #include "asUtils/timer.h"
 
 #include "tclap/CmdLine.h"
@@ -131,7 +132,7 @@ int main (int argc, char *argv[]) {
 
 		TCLAP::ValueArg<unsigned> cpusArg("c","cpus","Number of CPU threads to be used. (Default: 0)", false, 0, "uint");
 
-		int numDevicesAvailable; cudaVerify(cudaGetDeviceCount(&numDevicesAvailable));
+		int numDevicesAvailable = 0; CUDA_CHECK(cudaGetDeviceCount(&numDevicesAvailable));
 		vector<int> allowedDevices(numDevicesAvailable); iota(allowedDevices.begin(), allowedDevices.end(), 0);
 		TCLAP::ValuesConstraint<int> vc(allowedDevices);
 		TCLAP::MultiArg<int> deviceArg("d","device","Device ID of serverMode to be used. Must be between 0 and the number of available GPUs minus one.", false, &vc);
@@ -199,6 +200,16 @@ int main (int argc, char *argv[]) {
 	log->info() << "whichToTrack=" << whichToTrack << endl;
 	log->info() << "solverName=" << solverName << endl;
 	log->info() << "stats=" << stats << endl;
+
+	if (devices.size() > 0) {
+		/* Check Compute Capability of devices */
+		try {
+			asClient::checkComputeCapability();
+		} catch (std::exception& e) {
+			cerr << "Error: " << e.what() << endl;
+			exit(EXIT_FAILURE);
+		}
+	}
 
 	/* check if cpu or gpu is used */
 	as::Request::useMode_t serverMode = as::Request::unspecified;

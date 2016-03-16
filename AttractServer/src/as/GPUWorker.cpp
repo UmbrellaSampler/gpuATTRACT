@@ -66,7 +66,7 @@ as::GPUWorker::~GPUWorker ()
 void as::GPUWorker::run () {
 
 	/* Set the device to work with */
-	cudaVerify(cudaSetDevice(_deviceId));
+	CUDA_CHECK(cudaSetDevice(_deviceId));
 
 #ifndef KERNELTIMING
 	/* Initialize Pipeline */
@@ -85,13 +85,13 @@ void as::GPUWorker::run () {
 	/* Streams */
 	cudaStream_t streams[4];
 	for (int i = 0; i<4; ++i) {
-		cudaVerify(cudaStreamCreate(&streams[i]));
+		CUDA_CHECK(cudaStreamCreate(&streams[i]));
 	}
 
 	/* Events */
 	cudaEvent_t events[7];
 	for (int i = 0; i<7; ++i) {
-		cudaVerify(cudaEventCreate(&events[i], cudaEventDisableTiming));
+		CUDA_CHECK(cudaEventCreate(&events[i], cudaEventDisableTiming));
 	}
 
 	/* Initialize Input/Output Buffers */
@@ -430,10 +430,10 @@ void as::GPUWorker::run () {
 
 	/* Free/Destroy resources */
 	for (int i = 0; i<4; ++i) {
-		cudaVerify(cudaStreamDestroy(streams[i]));
+		CUDA_CHECK(cudaStreamDestroy(streams[i]));
 	}
 	for (int i = 0; i<7; ++i) {
-		cudaVerify(cudaEventDestroy(events[i]));
+		CUDA_CHECK(cudaEventDestroy(events[i]));
 	}
 
 #endif

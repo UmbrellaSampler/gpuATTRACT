@@ -38,8 +38,6 @@ void init_global_Logger(bool use_file = true) {
 	logLevel level = Info;
 #endif
 
-
-
 	if (use_file) {
 		std::string filename = "AttractServer.log";
 		global_log = new Logger(level, filename.substr(0,filename.size()-4));

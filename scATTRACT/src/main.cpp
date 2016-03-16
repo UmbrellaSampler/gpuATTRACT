@@ -26,6 +26,7 @@
 #include <AttractServer>
 #include "asUtils/Logger.h"
 #include "asClient/DOFTransform.h"
+#include "asClient/cudaArchCheck.h"
 #include "asUtils/timer.h"
 
 #include "tclap/CmdLine.h"
@@ -102,7 +103,7 @@ int main (int argc, char *argv[]) {
 
 		TCLAP::ValueArg<int> cpusArg("c","cpus","Number of CPU threads to be used. (Default: 0)", false, 0, "int", cmd);
 
-		int numDevicesAvailable; cudaGetDeviceCount(&numDevicesAvailable);
+		int numDevicesAvailable = 0; CUDA_CHECK(cudaGetDeviceCount(&numDevicesAvailable));
 		vector<int> allowedValues(numDevicesAvailable); iota(allowedValues.begin(), allowedValues.end(), 0);
 		TCLAP::ValuesConstraint<int> vc(allowedValues);
 		TCLAP::MultiArg<int> deviceArg("d","device","Device ID of GPU to be used.", false, &vc, cmd);
@@ -134,6 +135,7 @@ int main (int argc, char *argv[]) {
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
 	}
 
+
 	log->info() << "recName=" << recName 		<< endl;
 	log->info() << "ligName=" << ligName 		<< endl;
 	log->info() << "gridName=" << gridName 		<< endl;
@@ -146,6 +148,16 @@ int main (int argc, char *argv[]) {
 	log->info() << "maxItems=" << maxItemsPerSubmit	 <<  endl;
 	log->info() << "numToConsider=" << numToConsider << endl;
 	log->info() << "whichToTrack=" << whichToTrack << endl;
+
+	if (devices.size() > 0) {
+		/* Check Compute Capability of devices */
+		try {
+			asClient::checkComputeCapability();
+		} catch (std::exception& e) {
+			cerr << "Error: " << e.what() << endl;
+			exit(EXIT_FAILURE);
+		}
+	}
 
 	/* read dof header */
 	std::vector<asUtils::Vec3f> pivots;
