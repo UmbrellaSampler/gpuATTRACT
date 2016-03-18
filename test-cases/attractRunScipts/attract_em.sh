@@ -24,7 +24,7 @@ scoreparams="$ATTRACTDIR/../attract.par receptorr.pdb ligandr.pdb --score --fix-
 
 #grid parameters
 gridparams=" --grid 1 receptorgrid.grid"
-if [ 1 -eq 0 ]; then ### move and change to disable parts of the protocol
+if [ 1 -eq 1 ]; then ### move and change to disable parts of the protocol
 
 echo '**************************************************************'
 echo 'Reduce partner PDBs...'
