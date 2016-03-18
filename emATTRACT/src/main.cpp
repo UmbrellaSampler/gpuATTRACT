@@ -26,6 +26,7 @@
 #include <cfloat>
 #include <memory>
 #include <string>
+#include <algorithm>
 #include <cuda_runtime.h>
 
 #include <AttractServer>
@@ -137,9 +138,9 @@ int main (int argc, char *argv[]) {
 		TCLAP::ValuesConstraint<int> vc(allowedDevices);
 		TCLAP::MultiArg<int> deviceArg("d","device","Device ID of serverMode to be used. Must be between 0 and the number of available GPUs minus one.", false, &vc);
 
-		TCLAP::ValueArg<unsigned> chunkSizeArg("","chunkSize", "Number of concurrently processed structures at the server. (Default: 5000)", false, 5000, "uint", cmd);
+		TCLAP::ValueArg<unsigned> chunkSizeArg("","chunkSize", "Number of concurrently processed structures at the server. (Default: 0 (auto))", false, 0, "uint", cmd);
 
-		TCLAP::ValueArg<unsigned> rq_maxConcObjsArg("","maxConcurrency", "Max. number of concurrent structures that may be processed at the same time. (Default: 16000)", false, 20000, "uint", cmd);
+		TCLAP::ValueArg<unsigned> rq_maxConcObjsArg("","maxConcurrency", "Max. number of concurrent structures that may be processed at the same time. (Default: 20000)", false, 20000, "uint", cmd);
 		TCLAP::ValueArg<unsigned> rq_numChunksArg("","numChunks", "Number of request chunks. (Default: 2)", false, 2, "uint", cmd);
 		TCLAP::ValueArg<int> num2ConsiderArg("","num", "Number of configurations to consider (1 - num). (Default: All)", false, -1, "int", cmd);
 
@@ -261,6 +262,20 @@ int main (int argc, char *argv[]) {
 	 * initialize the scoring server: mngt(numItems, chunkSize, deviceBufferSize )
 	 * only a maximum number of items per request is allowed since too many items introduce a large overhead
 	 */
+
+	/* automatic adaptation of chunk size for multiple workers.
+	 * later this should be done by the RequestHandler with dynamic chunk size adaptation */
+	if (chunkSize == 0) {
+		if (numCPUs > 0) {
+			chunkSize = 100;
+		} else {
+			constexpr unsigned maxChunkSize = 5000;
+			unsigned numWorkers = devices.size();
+			chunkSize = std::ceil(static_cast<double>(rh_maxNumConcurrentObjects)/(rh_numChunks*numWorkers));
+			chunkSize = std::min(chunkSize, maxChunkSize);
+		}
+		log->info() << "chunkSize=" << chunkSize 	<< endl;
+	}
 
 	unsigned ligandSize = asDB::readProteinSizeFromPDB(ligFileName);
 	unsigned deviceBufferSize = ligandSize*chunkSize;

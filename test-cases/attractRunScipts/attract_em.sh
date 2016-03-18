@@ -64,8 +64,9 @@ if [ 1 -eq 1 ]; then
 
 
 function em () {
-
-$ASDIR/emATTRACT --dof systsearch.dat -p $ATTRACTDIR/../attract.par -a receptorgrid.alphabet -d 0 > out_$name.dat
+# specify "-d 0" for using one gpu, "-d 0 -d 1 ..." for multiple gpus if available 
+# specify "-c 1" for using one cpu, "-c NUM" for using NUM cpus. 
+$ATTRACTDIR/emATTRACT --dof systsearch.dat -p $ATTRACTDIR/../attract.par -a receptorgrid.alphabet -d 0 > out_$name.dat
 
 }
 
@@ -79,10 +80,10 @@ echo '**************************************************************'
 echo 'Final rescoring'
 echo '**************************************************************'
 #$ATTRACTDIR/attract out_$name.dat $scoreparams --rcut 50.0 > out_$name.score 
-time (python $ATTRACTDIR/../protocols/attract.py out_$name.dat $scoreparams --rcut 50.0 --output out_$name.score --np 3 --chunks 3 ) 2> $name.re-scoring.8t.time
+python $ATTRACTDIR/../protocols/attract.py out_$name.dat $scoreparams --rcut 50.0 --output out_$name.score --np 8 --chunks 8
 fi
 
-if [ 1 -eq 0 ]; then     
+if [ 1 -eq 1 ]; then     
 echo '**************************************************************'
 echo 'Merge the scores with the structures'
 echo '**************************************************************'

@@ -70,10 +70,11 @@ function simulatedAnnealing () {
 echo '**************************************************************'
 echo "Iteration -1 kt:0.1 D:5 A:10"
 echo '**************************************************************'
-$ASDIR/mcATTRACT --iter 100 -p $ATTRACTDIR/../attract.par -a receptorgrid.alphabet --dof $start -d 0 --maxAng 10 --maxDist 5 --kT 0.1 > out_$name.start.dat
+# initial step to accelerate convergence
+$ATTRACTDIR/mcATTRACT --iter 100 -p $ATTRACTDIR/../attract.par -a receptorgrid.alphabet --dof $start -d 0 --maxAng 10 --maxDist 5 --kT 0.1 > out_$name.start.dat
 
-#kt=(0.5 0.3)
-#D=(1.0 0.3)
+# The following procedure e.g. the list of temperatures (kt) and distances (D) is neigther
+# proved nor tested to be efficient or effective!!! 
 kt=(1.4 1.3 1.2 1.1 1.0 0.9 0.8 0.7 0.6 0.5 0.4 0.3 0.2 0.1)
 D=(2.8 2.6 2.4 2.2 2.0 1.8 1.6 1.4 1.2 1.0 0.8 0.6 0.4 0.2)
 num=30
@@ -100,7 +101,7 @@ do
 	fi
 	#echo "stop $stop"
 	
-	$ASDIR/mcATTRACT --iter $num -p $ATTRACTDIR/../attract.par -a receptorgrid.alphabet --dof $start -d 0 --maxAng $A --maxDist ${D[$i]} --kT ${kt[$i]} > $stop
+	$ATTRACTDIR/mcATTRACT --iter $num -p $ATTRACTDIR/../attract.par -a receptorgrid.alphabet --dof $start -d 0 --maxAng $A --maxDist ${D[$i]} --kT ${kt[$i]} > $stop
 done
 }
 
@@ -109,7 +110,7 @@ echo 'Docking'
 echo '**************************************************************'
 
 
-time (simulatedAnnealing) 2> $name.docking.time 
+simulatedAnnealing
 
 
 

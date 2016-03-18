@@ -32,7 +32,7 @@ as: check_cuda_version
 attract:
 	cd attract/bin && $(MAKE) all
 
-NVCC_RESULT = $(shell which nvcc 2> NULL)
+NVCC_RESULT = $(shell which nvcc 2> /dev/null)
 NVCC_TEST = $(notdir $(NVCC_RESULT))
 
 MIN_VERSION="6.5"

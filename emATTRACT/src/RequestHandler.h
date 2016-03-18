@@ -35,7 +35,7 @@
 
 namespace ema {
 
-constexpr unsigned maxConcurrentObjects = 20000; // default (16000) maximum number of running coroutines that may exist at the same time.
+constexpr unsigned maxConcurrentObjects = 20000; // default maximum number of running coroutines that may exist at the same time.
 constexpr unsigned numChunks = 2; // default number of chunks running at the same time. Each chunk maintains maxConcurrentObjects/numChunks objects.
 constexpr unsigned minChunkSize = 10; // minimum chunksize that is worth to work with
 
