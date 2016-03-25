@@ -1,53 +1,33 @@
-/*
- * cudaArchCheck.cpp
+/*******************************************************************************
+ * gpuATTRACT framework
+ * Copyright (C) 2016 Uwe Ehmann
  *
- *  Created on: Mar 16, 2016
- *      Author: uwe
- */
-
+ * This file is part of the gpuATTRACT framework.
+ *
+ * The gpuATTRACT framework is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The gpuATTRACT framework is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *******************************************************************************/
 #include "cuda_runtime.h"
-#include <exception>
-#include <string>
-#include <sstream>
 #include "asUtils/macros.h"
+#include "asClient/cudaArchCheck.h"
 
-#include <iostream>
-
-constexpr int minMajorCC = 3;
-constexpr int minMinorCC = 0;
-
-class CUDAComputeCapabilityException : public std::exception {
-public:
-	CUDAComputeCapabilityException(int major, int minor, int deviceId) :
-		_majorCC(major),
-		_minorCC(minor),
-		_deviceId(deviceId)
-	{}
-
-	virtual const char* what() const throw()
-	{
-		std::stringstream msg;
-		msg << "CUDA Compute Capability ("
-				<< _majorCC << "." << _minorCC << ") "
-				<< "of device (ID) " << _deviceId << " is insufficient. At least "
-				<< minMajorCC << "." << minMinorCC << " is required.";
-		return msg.str().c_str();
-	}
-
-private:
-	int _majorCC;
-	int _minorCC;
-	int _deviceId;
-
-};
 
 namespace asClient {
 
-void checkComputeCapability() {
-	int nDevices = 0;
-	CUDA_CHECK(cudaGetDeviceCount(&nDevices));
+bool checkComputeCapability(int minMajorCC, int minMinorCC, const std::vector<int>& devices) {
+	int nDevices = devices.size();
 
-
+	bool proper = true;
 	for (int i = 0; i < nDevices; i++) {
 		cudaDeviceProp prop;
 		CUDA_CHECK(cudaGetDeviceProperties(&prop, i));
@@ -58,10 +38,10 @@ void checkComputeCapability() {
 		int CC = 10*majorCC + minorCC;
 		int minCC = 10*minMajorCC + minMinorCC;
 
-		if (minCC > CC) {
-			throw CUDAComputeCapabilityException(majorCC, minorCC, i);
-		}
+		proper &=  minCC <= CC;
 	}
+
+	return proper;
 }
 
 }

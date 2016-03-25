@@ -90,6 +90,7 @@ int main (int argc, char *argv[]) {
 	unsigned numCPUs;
 	unsigned chunkSize;
 	vector<int> devices;
+	bool fallback;
 
 	/* for request Handler */
 	unsigned rh_maxNumConcurrentObjects;
@@ -137,6 +138,7 @@ int main (int argc, char *argv[]) {
 		vector<int> allowedDevices(numDevicesAvailable); iota(allowedDevices.begin(), allowedDevices.end(), 0);
 		TCLAP::ValuesConstraint<int> vc(allowedDevices);
 		TCLAP::MultiArg<int> deviceArg("d","device","Device ID of serverMode to be used. Must be between 0 and the number of available GPUs minus one.", false, &vc);
+		TCLAP::SwitchArg fallbackArg("", "fallback", "Fall back to CPU version if GPU hardware check fails. Needs to specified with -c and -d ");
 
 		TCLAP::ValueArg<unsigned> chunkSizeArg("","chunkSize", "Number of concurrently processed structures at the server. (Default: 0 (auto))", false, 0, "uint", cmd);
 
@@ -160,7 +162,7 @@ int main (int argc, char *argv[]) {
 		TCLAP::ValueArg<int> statsArg("","stats", desc.str() , false, 0, &vc_stats, cmd);
 
 
-		cmd.xorAdd(cpusArg, deviceArg);
+//		cmd.xorAdd(cpusArg, deviceArg);
 
 		// parse cmd-line input
 		cmd.parse(argc, argv);
@@ -181,6 +183,7 @@ int main (int argc, char *argv[]) {
 		solverName = solverTypeArg.getValue();
 		stats = statsArg.getValue();
 		recGridAlphabetName = gridAlphabet.getValue();
+		fallback = fallbackArg.getValue();
 
 	} catch (TCLAP::ArgException &e){
 		cerr << "error: " << e.error() << " for arg " << e.argId() << endl;
@@ -202,15 +205,36 @@ int main (int argc, char *argv[]) {
 	log->info() << "solverName=" << solverName << endl;
 	log->info() << "stats=" << stats << endl;
 
-	if (devices.size() > 0) {
-		/* Check Compute Capability of devices */
-		try {
-			asClient::checkComputeCapability();
-		} catch (std::exception& e) {
-			cerr << "Error: " << e.what() << endl;
-			exit(EXIT_FAILURE);
+	std::stringstream CUDAFailMsg;
+	CUDAFailMsg << "CUDA Compute Capability of at least one device is insufficient. A minimum of "
+			<< "3.0 is required." << endl;
+	if (fallback == true) {
+		if (devices.size() == 0 || numCPUs == 0) {
+			cerr << "Argument Error: Please specifiy '--ballback' together with '-c' & '-d'" << endl;
+			exit(1);
+		} else {
+			/* Check Compute Capability of devices */
+			if (asClient::checkComputeCapability(3,0,devices) == true) {
+				numCPUs = 0;
+			} else {
+				cerr << "Warning: " << CUDAFailMsg << endl;
+				cerr << "Falling back to CPU version" << endl;
+				devices.clear();
+			}
+		}
+	} else {
+		if (devices.size() > 0 && numCPUs > 0) {
+			cerr << "Argument Error: Please specifiy '-c' or '-d'" << endl;
+			exit(1);
+		} else {
+			if (devices.size() > 0 && asClient::checkComputeCapability(3,0,devices) == false) {
+				cerr << "Error: " << CUDAFailMsg << endl;
+				cerr << "Falling back to CPU version" << endl;
+				devices.clear();
+			}
 		}
 	}
+
 
 	/* check if cpu or gpu is used */
 	as::Request::useMode_t serverMode = as::Request::unspecified;
